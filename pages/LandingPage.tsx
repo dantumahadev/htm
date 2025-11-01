@@ -70,7 +70,7 @@ const localImages = [
 ];
 
 // Switch this line to use your local images when they are ready.
-const slideshowImages = localImages;
+const slideshowImages = placeholderImages;
 
 
 const LandingPage: React.FC = () => {
