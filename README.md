@@ -1,86 +1,119 @@
-
-# Artisan Ally: An AI-Powered Empowerment Platform
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/google/aistudio/main/apps/demos/artisan-ally/artisan-ally-logo.png" alt="Artisan Ally Logo" width="120">
 </p>
+
+<h1 align="center">Artisan Ally: An AI-Powered Empowerment Platform</h1>
 
 <p align="center">
   <strong>An all-in-one platform to empower local artisans by enhancing their digital presence, providing financial tools, connecting them with volunteers, and protecting their craft's intellectual property.</strong>
 </p>
 
 <p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#technology-stack">Tech Stack</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#project-structure">Project Structure</a> •
-  <a href="#license">License</a>
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"/>
+  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white"/>
+  <img alt="Firebase" src="https://img.shields.io/badge/Firebase-10-FFCA28?logo=firebase&logoColor=black"/>
+  <img alt="Gemini API" src="https://img.shields.io/badge/Gemini_API-v1-4285F4?logo=google&logoColor=white"/>
+</p>
+
+<p align="center">
+  <a href="#-the-vision">The Vision</a> •
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-technology-stack--architecture">Tech Stack</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-future-roadmap">Future Roadmap</a> •
+  <a href="#-contributing">Contributing</a>
 </p>
 
 ---
 
-## 🌟 About The Project
+## 🌟 The Vision
 
-Artisan Ally is more than just a marketplace; it's a complete ecosystem designed to bridge the gap between traditional craftsmanship and the digital world. The platform addresses the core challenges faced by local artisans, such as limited market access, lack of digital skills, financial constraints, and the need to preserve cultural heritage.
+Artisan Ally is more than just a marketplace; it's a complete digital ecosystem designed to bridge the gap between traditional craftsmanship and the global digital economy. We recognize that local artisans possess immense talent and cultural heritage but often face significant barriers: limited market access, a lack of digital marketing skills, financial constraints, and the risk of intellectual property theft.
 
-By leveraging the power of Google's Gemini AI, Artisan Ally provides a suite of intelligent tools that act as a co-pilot for artisans, helping them create, market, and sell their products globally. Simultaneously, it creates a vibrant community by connecting artisans with skilled volunteers and conscious consumers, fostering a collaborative environment where craft meets opportunity.
+Our mission is to dismantle these barriers. By leveraging the power of Google's Gemini AI, Artisan Ally provides a suite of intelligent tools that act as a personal co-pilot for artisans, simplifying every step from product photography to global sales. Simultaneously, we cultivate a vibrant community by connecting these artisans with skilled volunteers and conscious consumers, fostering a collaborative environment where craft, culture, and opportunity converge.
 
 ## ✨ Key Features
 
-The platform is built around a multi-role architecture, providing tailored experiences for Artisans, Volunteers, and Customers.
+The platform is built around a multi-role architecture, providing tailored, empowering experiences for Artisans, Volunteers, and Customers.
 
 ### For Artisans 🎨
-- **AI Market Assistant**: Generate compelling product names, descriptions, and categories from a simple photo or voice note. Includes multi-language support.
-- **AI Photo Studio**: Transform basic product photos into professional, e-commerce-ready images with AI-powered backgrounds and lighting adjustments.
-- **AI Pricing Advisor**: Get data-driven price suggestions based on real-time web comparisons using Google Search grounding.
-- **AI Video Ad Creator**: Automatically generate short, engaging promotional videos for products from a simple text story, powered by the Veo model.
-- **Digital Provenance**: Mint digital certificates of authenticity for each craft, protecting intellectual property and adding value for buyers.
-- **Finance Hub**: Create and manage crowdfunding campaigns to raise funds for materials, equipment, or workshop expansion.
-- **Volunteer Hub**: Post projects (e.g., "need help with logo design") and connect with skilled volunteers who can help grow your business.
-- **Direct-to-Customer**: Manage your own storefront, chat directly with customers, and handle bargain requests.
+The Artisan Dashboard is a powerful control center designed to automate complexities and amplify creativity.
+
+-   **🤖 AI Market Assistant**: Generate compelling product names, descriptions, and categories in multiple languages from a simple photo or voice note.
+    -   *Tech: Gemini 2.5 Flash (Multimodal Input)*
+-   **📸 AI Photo Studio**: Transform basic product photos into professional, e-commerce-ready images with AI-powered backgrounds and lighting adjustments.
+    -   *Tech: Gemini 2.5 Flash Image*
+-   **💹 AI Pricing Advisor**: Get data-driven price suggestions based on real-time web comparisons for similar products.
+    -   *Tech: Gemini 2.5 Flash with Google Search Grounding*
+-   **🎬 AI Video Ad Creator**: Automatically generate short, engaging promotional videos from a simple text story about a product or the artisan's journey.
+    -   *Tech: Veo 3.1 Fast*
+-   **🛡️ Digital Provenance**: Mint unique digital certificates of authenticity for each craft, protecting intellectual property and adding verifiable value for buyers.
+-   **💰 Finance Hub**: Create and manage crowdfunding campaigns to raise funds for materials, equipment, or workshop expansion.
+-   **🤝 Volunteer Hub**: Post projects (e.g., "need help with logo design") and connect with skilled volunteers who can help grow your business.
+-   **💬 Direct-to-Customer**: Manage a personalized storefront, chat directly with customers, and handle bargain requests to foster relationships.
 
 ### For Volunteers 🤝
-- **Project Marketplace**: Browse and apply for skill-based projects posted by artisans, such as photography, marketing, graphic design, and content writing.
-- **Profile Showcase**: Highlight your skills, motivation, and completed projects to connect with artisans.
-- **Collaboration Tools**: Communicate with artisans via built-in chat and manage project progress.
-- **Digital Certificates**: Receive verifiable certificates of contribution from artisans upon project completion, building your portfolio and impact history.
+A purposeful platform for skilled individuals to create a tangible impact.
+
+-   **📋 Project Marketplace**: Browse and apply for skill-based projects posted by artisans, such as photography, marketing, graphic design, and content writing.
+-   **👤 Profile Showcase**: Highlight your skills, professional experience, and completed projects to connect with artisans seeking your expertise.
+-   **📈 Impact Tracking**: See your contributions come to life and help artisans thrive in the digital marketplace.
+-   **📜 Digital Certificates**: Receive verifiable certificates of contribution from artisans upon project completion, building a portfolio of social impact.
 
 ### For Customers 🛍️
-- **Curated Marketplace**: Discover and purchase unique, handcrafted items directly from artisans.
-- **Meet the Artisan**: Explore artisan profiles, read their stories, and watch videos about their craft to connect with the products on a deeper level.
-- **Bargaining System**: Engage directly with artisans by making offers on products that support negotiation.
-- **AI Stylist**: Visualize how a product might look in different aesthetic settings (e.g., Minimalist, Bohemian) using generative AI.
-- **Verified Authenticity**: Shop with confidence by viewing the digital certificate of authenticity linked to a product.
-- **Multi-Role Experience**: Easily switch views to see the platform as an artisan or volunteer.
+A marketplace that connects you to the story behind the product.
 
-## 🛠️ Technology Stack
+-   **🛒 Curated Marketplace**: Discover and purchase unique, handcrafted items directly from talented artisans around the world.
+-   **🧑‍🎨 Meet the Artisan**: Go beyond the product. Explore artisan profiles, read their personal stories, and watch videos about their craft.
+-   **💸 Bargaining System**: Engage directly with artisans by making fair offers on products that support negotiation.
+-   **🔮 AI Stylist**: Unsure how an item fits your home or style? Use generative AI to visualize a product in different aesthetic settings (e.g., Minimalist, Bohemian).
+    -   *Tech: Gemini 2.5 Flash Image*
+-   **✅ Verified Authenticity**: Shop with confidence by viewing the digital certificate of authenticity linked to each protected product.
 
-This project is built with a modern, scalable, and AI-first technology stack.
+## 👥 Target Audience
 
-- **Frontend**: [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/)
-- **Backend & Database**: [Firebase](https://firebase.google.com/) (Firestore, Authentication)
-- **AI & Machine Learning**: [Google Gemini API](https://ai.google.dev/gemini-api)
-  - `gemini-2.5-flash` for text generation, transcription, and multi-modal analysis.
-  - `gemini-2.5-flash-image` for AI-powered image editing (Photo Studio & AI Stylist).
-  - `veo-3.1-fast-generate-preview` for text-to-video ad generation.
-  - Google Search grounding for real-time data retrieval (Price Advisor).
-- **State Management**: React Context API
+Artisan Ally is designed for three key groups who form our collaborative ecosystem:
 
-## 🚀 Getting Started
+1.  **Local & Traditional Artisans**: Craftsmen and women who are experts in their art form but may lack the resources or digital literacy to access a global market.
+2.  **Skilled Volunteers**: Professionals and students in fields like design, marketing, photography, and business who want to use their skills for meaningful, high-impact social good.
+3.  **Conscious Consumers**: Buyers who value authenticity, storytelling, and ethical sourcing, and wish to support small-scale creators and preserve cultural heritage.
+
+## 🛠️ Technology Stack & Architecture
+
+This project is built with a modern, scalable, and AI-first technology stack, chosen for its rapid development capabilities and powerful features.
+
+| Category      | Technology                                                                                                    | Why We Chose It                                                                                                                                                                                                                                                                                       |
+| :------------ | :------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**  | [React](https://reactjs.org/) (v19) with [TypeScript](https://www.typescriptlang.org/) & [Tailwind CSS](https://tailwindcss.com/) | For building a fast, modern, and maintainable component-based UI. TypeScript ensures type safety and scalability, while Tailwind CSS allows for rapid, utility-first styling.                                                                                                   |
+| **Backend**   | [Firebase](https://firebase.google.com/) (Firestore, Auth)                                                      | Provides a serverless, real-time NoSQL database (Firestore) perfect for features like live chat and notifications, along with a secure and easy-to-use authentication system. It allows us to focus on frontend features while Firebase handles backend complexity.               |
+| **AI/ML**     | [Google Gemini API](https://ai.google.dev/gemini-api)                                                         | The core of our intelligent features. We use a suite of Gemini models for their powerful multimodal capabilities, including text generation, image understanding, image editing, video generation, and grounded generation with Google Search for real-time data. |
+| **State**     | React Context API                                                                                             | For centralized and simplified global state management (`AppContext.tsx`), providing a single source of truth for user data, application state, and core functionalities, eliminating prop-drilling and enhancing code readability.                                         |
+
+## 🚀 Future Roadmap
+
+We are just getting started! Our roadmap includes integrating more advanced technologies to further empower our users:
+
+-   **🗣️ Real-Time Voice Negotiation**: Integrate **Gemini Live API** to enable real-time, voice-to-voice chat and bargaining between customers and artisans, with instant translation capabilities.
+-   **🧠 Personalized Recommendation Engine**: Implement a recommendation system using embeddings or advanced AI to suggest products to customers, and potential volunteer-artisan pairings based on skills and needs.
+-   **🌐 Advanced Web3 Integration**: Move beyond simple digital certificates to a fully decentralized system using NFTs on an eco-friendly blockchain to give artisans true ownership and royalty rights on secondary sales.
+-   **📈 Artisan Analytics Dashboard**: Provide artisans with an AI-powered analytics dashboard that offers insights into sales trends, customer demographics, and marketing effectiveness, with actionable suggestions for growth.
+-   **📦 AI-Powered Logistics**: Integrate AI to help artisans calculate shipping costs, find the most efficient carriers, and generate shipping labels, simplifying a major operational hurdle.
+
+## ⚡ Getting Started
 
 To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or later recommended)
-- `npm` or `yarn` package manager
+-   [Node.js](https://nodejs.org/) (v18 or later recommended)
+-   `npm` or `yarn` package manager
 
 ### Installation & Setup
 
 1.  **Clone the Repository**
     ```sh
-    git clone https://github.com/your-username/artisan-ally.git
-    cd artisan-ally
+    git clone https://github.com/google/aistudio.git
+    cd apps/demos/artisan-ally
     ```
 
 2.  **Install Dependencies**
@@ -89,24 +122,25 @@ To get a local copy up and running, follow these simple steps.
     ```
 
 3.  **Set up Firebase**
-    - Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
-    - In your project, go to the **Firestore Database** section, create a database, and select a location.
-    - Inside Firestore, create a new database with the ID `ananyaa`.
-    - Go to the **Authentication** section, click the "Get started" button, and enable the **Email/Password** and **Google** sign-in providers.
-    - Navigate to your Project Settings (click the gear icon ⚙️) and under the "General" tab, find your "SDK setup and configuration".
-    - Copy the `firebaseConfig` object and paste it into `src/firebaseConfig.ts`.
+    -   Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+    -   In your project dashboard, go to **Build > Firestore Database**, create a database, and select a location.
+    -   Inside Firestore, create a new database with the ID `ananyaa`.
+    -   Go to **Build > Authentication**, click "Get started", and enable the **Email/Password** and **Google** sign-in providers.
+    -   Navigate to **Project Settings** (click the gear icon ⚙️) > **General** tab.
+    -   Under "Your apps", create a new Web App.
+    -   Copy the `firebaseConfig` object and paste it into `src/firebaseConfig.ts`.
 
 4.  **Set up Google Gemini API Key**
-    - Obtain an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-    - Create a new file named `.env` in the root of the project.
-    - Add your API key to the `.env` file:
-      ```env
-      API_KEY=YOUR_GEMINI_API_KEY
-      ```
-    > **Note**: For video generation features, ensure that the Google Cloud project associated with your API key has **Billing enabled** and the **Vertex AI API** is enabled.
+    -   Obtain an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+    -   Create a new file named `.env` in the root of the project (`/artisan-ally`).
+    -   Add your API key to the `.env` file:
+        ```env
+        API_KEY=YOUR_GEMINI_API_KEY
+        ```
+    > **Important**: For video generation features (`Veo`), the Google Cloud project associated with your API key must have **Billing enabled** and the **Vertex AI API** enabled.
 
 5.  **Run the Development Server**
-    The project is configured to run directly in a compatible development environment like AI Studio. If you are setting it up locally with a standard React toolchain (like Vite or Create React App), you would typically run:
+    This project is designed to run in development environments like AI Studio. If you're using a standard local setup with Vite or Create React App, you would run:
     ```sh
     npm start
     ```
@@ -115,63 +149,19 @@ The application should now be running on your local server!
 
 ## 📁 Project Structure
 
-The codebase is organized into a modular structure to maintain clarity and scalability.
+The codebase is organized into a modular structure to maintain clarity and scalability. Key directories include:
 
-```
-/
-├── public/
-├── src/
-│   ├── components/
-│   │   ├── common/         # Reusable UI components (Button, Card, etc.)
-│   │   ├── customer/       # Components specific to the customer view
-│   │   └── layout/         # Main layout components (Header, Sidebar)
-│   ├── contexts/
-│   │   └── AppContext.tsx  # Global state management for the entire app
-│   ├── hooks/
-│   │   └── useLocalization.tsx # Hook for multi-language support
-│   ├── lib/
-│   │   ├── initialData.ts  # Sample data for fallback and seeding
-│   │   └── translations.ts # All localization strings
-│   ├── pages/
-│   │   ├── customer/       # Pages for the customer-facing app
-│   │   ├── ArtisanProfilePage.tsx
-│   │   ├── ChatPage.tsx
-│   │   ├── DashboardPage.tsx
-│   │   ├── FinancePage.tsx
-│   │   ├── LandingPage.tsx
-│   │   ├── LoginPage.tsx
-│   │   ├── MarketplacePage.tsx # The AI Market Assistant page for artisans
-│   │   ├── NftPage.tsx         # Digital Provenance/Certificate minting
-│   │   ├── PhotoStudioPage.tsx
-│   │   ├── ... (and all other top-level pages)
-│   ├── services/
-│   │   └── geminiService.ts # Centralized functions for all Gemini API calls
-│   ├── styles/
-│   ├── types/
-│   │   └── index.ts        # TypeScript type definitions
-│   ├── App.tsx             # Main app component with routing logic
-│   ├── firebaseConfig.ts   # Firebase initialization
-│   └── index.tsx           # Application entry point
-├── .env                    # Environment variables (local)
-└── README.md
-```
+-   `src/components`: Contains reusable UI components, organized by `common`, `customer`, and `layout`.
+-   `src/contexts/AppContext.tsx`: The heart of the application, providing global state management.
+-   `src/pages`: Contains all top-level page components, organized by user role where necessary.
+-   `src/services/geminiService.ts`: A dedicated service layer that abstracts all interactions with the Google Gemini API.
+-   `src/lib/translations.ts`: Centralized localization strings for multi-language support.
 
-## 🏛️ Architectural Concepts
+## 🤝 Contributing
 
-### Global State Management
-The application relies heavily on the **React Context API** for global state management. `AppContext.tsx` is the heart of the application, providing a centralized store for:
-- User authentication and profile data (`currentUser`).
-- All major data collections (products, projects, users).
-- UI state (active page, selected product/user).
-- Core functionalities (chat, bargaining, connections, etc.).
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-This approach avoids prop-drilling and keeps the component logic clean and focused on presentation.
-
-### Service Layer
-All interactions with the Google Gemini API are abstracted into a dedicated service layer in `src/services/geminiService.ts`. This design pattern offers several advantages:
-- **Separation of Concerns**: Components are not directly responsible for making API calls.
-- **Reusability**: API functions can be easily reused across different parts of the application.
-- **Maintainability**: If the API changes, updates only need to be made in one place.
+Please read our `CONTRIBUTING.md` for details on our code of conduct and the process for submitting pull requests.
 
 ## 📄 License
 
