@@ -11,13 +11,12 @@ interface Props {
 
 const CustomerArtisanProfilePage: React.FC<Props> = ({ artisan }) => {
     const { t } = useLocalization();
-    const { products, setSelectedProduct, setSelectedPortfolioUser, startChat, setActivePage } = useContext(AppContext)!;
+    const { products, setSelectedProduct, setSelectedPortfolioUser, startChat, setActivePage, currentUser, connectionRequests, sendConnectionRequest } = useContext(AppContext)!;
 
     const artisanProducts = products.filter(p => p.artisanId === artisan.id);
     
     const handleMessageArtisan = () => {
-        startChat(artisan.id);
-        setActivePage('customer-chat');
+        startChat({ id: artisan.id, name: artisan.name, avatar: artisan.avatar });
     };
 
     const handleProductClick = (product: Product) => {
@@ -26,6 +25,28 @@ const CustomerArtisanProfilePage: React.FC<Props> = ({ artisan }) => {
         setTimeout(() => {
             setSelectedProduct(product);
         }, 50);
+    };
+
+    const ConnectOrMessageButton: React.FC = () => {
+        if (!currentUser) return null;
+    
+        const existingRequest = connectionRequests.find(
+            req => (req.senderId === currentUser.id && req.receiverId === artisan.id) || (req.senderId === artisan.id && req.receiverId === currentUser.id)
+        );
+    
+        if (existingRequest) {
+            if (existingRequest.status === 'accepted') {
+                return <Button onClick={handleMessageArtisan} className="w-full sm:w-auto px-8">{t('profile.message')}</Button>;
+            }
+            if (existingRequest.status === 'pending') {
+                if (existingRequest.senderId === currentUser.id) {
+                    return <Button disabled className="w-full sm:w-auto px-8">{t('profile.requestSent')}</Button>;
+                }
+                return <Button onClick={() => setActivePage('customer-offers')} className="w-full sm:w-auto px-8">{t('profile.respondToRequest')}</Button>;
+            }
+        }
+        
+        return <Button onClick={() => sendConnectionRequest(artisan)} className="w-full sm:w-auto px-8">{t('profile.connect')}</Button>;
     };
 
     return (
@@ -44,12 +65,12 @@ const CustomerArtisanProfilePage: React.FC<Props> = ({ artisan }) => {
                 {/* Header Card */}
                 <div className="relative">
                     <Card className="p-8 flex flex-col sm:flex-row items-center gap-8">
-                        <img src={artisan.avatar} alt={artisan.name} className="w-40 h-40 rounded-full ring-8 ring-white dark:ring-slate-800 -mt-28 sm:-mt-24 flex-shrink-0" />
+                        <img src={artisan.avatar} alt={artisan.name} className="w-40 h-40 rounded-full object-cover ring-8 ring-white dark:ring-slate-800 -mt-28 sm:-mt-24 flex-shrink-0" />
                         <div className="flex-1 text-center sm:text-left">
                             <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100">{artisan.name}</h1>
                             <p className="text-slate-500 dark:text-slate-400 font-semibold mt-1">{artisan.location}</p>
                         </div>
-                        <Button onClick={handleMessageArtisan} className="w-full sm:w-auto px-8">{t('customer.product.messageArtisan')}</Button>
+                        <ConnectOrMessageButton />
                     </Card>
                 </div>
                 

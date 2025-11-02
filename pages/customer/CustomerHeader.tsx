@@ -38,7 +38,7 @@ const RoleSwitcher: React.FC = () => {
 
 const CustomerHeader: React.FC = () => {
     const { t } = useLocalization();
-    const { cart, favorites, setActivePage, logout, products } = useContext(AppContext)!;
+    const { cart, favorites, setActivePage, logout, products, currentUser } = useContext(AppContext)!;
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
@@ -106,7 +106,7 @@ const CustomerHeader: React.FC = () => {
                         </button>
                         <div className="relative">
                             <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-offset-2 ring-teal-500">
-                                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&q=80" alt="Profile" />
+                                <img src={currentUser?.avatar} alt="Profile" className="w-full h-full object-cover" />
                             </button>
                             {isProfileOpen && (
                                 <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-lg shadow-lg py-2 z-50">

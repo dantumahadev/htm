@@ -1,7 +1,9 @@
 
+
 import React, { useState, useCallback, useRef } from 'react';
 import Card from '../components/common/Card';
 import { useLocalization } from '../hooks/useLocalization';
+import { getRandomProfileImage } from '../lib/initialData';
 
 const CommunityPage: React.FC = () => {
     const { t, language } = useLocalization();
@@ -43,10 +45,10 @@ const CommunityPage: React.FC = () => {
 
 
     const messages = [
-        { user: 'Rina S.', text: t('community.messages.msg1'), avatar: 'https://picsum.photos/id/301/40/40', isCurrentUser: false },
-        { user: 'Manish P.', text: t('community.messages.msg2'), avatar: 'https://picsum.photos/id/302/40/40', isCurrentUser: false },
-        { user: 'A. Kumar', text: t('community.messages.msg3'), avatar: 'https://picsum.photos/id/1027/40/40', isCurrentUser: true },
-        { user: 'Sunita V.', text: t('community.messages.msg4'), avatar: 'https://picsum.photos/id/304/40/40', isCurrentUser: false },
+        { user: 'Rina S.', text: t('community.messages.msg1'), avatar: getRandomProfileImage('Rina S.'), isCurrentUser: false },
+        { user: 'Manish P.', text: t('community.messages.msg2'), avatar: getRandomProfileImage('Manish P.'), isCurrentUser: false },
+        { user: 'A. Kumar', text: t('community.messages.msg3'), avatar: getRandomProfileImage('A. Kumar'), isCurrentUser: true },
+        { user: 'Sunita V.', text: t('community.messages.msg4'), avatar: getRandomProfileImage('Sunita V.'), isCurrentUser: false },
     ];
   
     return (
@@ -59,7 +61,7 @@ const CommunityPage: React.FC = () => {
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex items-start gap-3 ${msg.isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                            <img src={msg.avatar} alt={msg.user} className="w-10 h-10 rounded-full" />
+                            <img src={msg.avatar} alt={msg.user} className="w-10 h-10 rounded-full object-cover" />
                             <div className={`flex flex-col ${msg.isCurrentUser ? 'items-end' : 'items-start'}`}>
                                 <p className="font-semibold text-sm text-slate-700 dark:text-slate-300 px-1">{msg.user}</p>
                                 <div className={`max-w-md p-4 rounded-2xl mt-1 ${msg.isCurrentUser ? 'bg-teal-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 rounded-bl-none'}`}>

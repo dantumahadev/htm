@@ -4,6 +4,7 @@ import { useLocalization } from '../hooks/useLocalization';
 import Card from '../components/common/Card';
 import { LogoIcon } from '../components/common/Icons';
 import type { Role, User, Artisan, Volunteer } from '../types';
+import { getRandomProfileImage } from '../lib/initialData';
 
 const RoleSelectionPage: React.FC = () => {
   const { setCurrentUser, firebaseUser } = useContext(AppContext)!;
@@ -16,7 +17,7 @@ const RoleSelectionPage: React.FC = () => {
     const baseUser: User = {
       id: firebaseUser.uid,
       name: firebaseUser.displayName || 'New User',
-      avatar: firebaseUser.photoURL || `https://i.pravatar.cc/150?u=${firebaseUser.uid}`,
+      avatar: firebaseUser.photoURL || getRandomProfileImage(firebaseUser.uid),
       role: role,
       profileComplete: false, // Set profile as incomplete
     };

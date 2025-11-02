@@ -1,18 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { useLocalization } from '../../hooks/useLocalization';
 import Button from './Button';
-
-export interface CertificateData {
-    id: string;
-    artworkName: string;
-    artistName: string;
-    craftTradition: string;
-    certifiedDate: Date;
-    heritageStory: string;
-}
+import type { Certificate } from '../../types';
 
 interface Props {
-    data: CertificateData;
+    data: Certificate;
     onClose: () => void;
 }
 
@@ -46,6 +38,9 @@ const DigitalCertificate: React.FC<Props> = ({ data, onClose }) => {
     const verificationUrl = `https://artisans.example.com/verify/${data.id}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(verificationUrl)}&bgcolor=334155&color=f59e0b&qzone=1`;
     const largeQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(verificationUrl)}&bgcolor=fffbeb&color=78350f&qzone=1`;
+    
+    // Ensure certifiedDate is a Date object
+    const certifiedDate = data.certifiedDate?.toDate ? data.certifiedDate.toDate() : new Date(data.certifiedDate);
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -85,7 +80,7 @@ const DigitalCertificate: React.FC<Props> = ({ data, onClose }) => {
                             </div>
                             <div>
                                 <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{t('nft.certificate.date')}</p>
-                                <p className="text-white font-bold text-lg">{data.certifiedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                <p className="text-white font-bold text-lg">{certifiedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                             </div>
                         </div>
 

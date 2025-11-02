@@ -1,33 +1,48 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../../contexts/AppContext';
+import Button from '../common/Button';
+import type { Role } from '../../types';
 
 interface HeaderProps {
     title: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ title }) => {
-    const { cart, setActivePage } = useContext(AppContext)!;
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+const RoleSwitcher: React.FC = () => {
+    const { currentUser, switchUserRole } = useContext(AppContext)!;
+
+    if (!currentUser) return null;
+
+    const roles: Role[] = ['artisan', 'volunteer', 'customer'];
+    const otherRoles = roles.filter(r => r !== currentUser.role);
+
+    const roleColors: Record<Role, string> = {
+        artisan: 'text-teal-600 bg-teal-50 hover:bg-teal-100 dark:text-teal-400 dark:bg-teal-500/10 dark:hover:bg-teal-500/20',
+        volunteer: 'text-sky-600 bg-sky-50 hover:bg-sky-100 dark:text-sky-400 dark:bg-sky-500/10 dark:hover:bg-sky-500/20',
+        customer: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20',
+    };
 
     return (
-        <header className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6 flex items-center justify-between sticky top-0 z-10">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">{title}</h1>
-            <div className="relative">
-                <button 
-                    onClick={() => setActivePage('cart')}
-                    className="p-3 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                    aria-label={`Shopping cart with ${totalItems} items`}
+        <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">Switch View:</span>
+            {otherRoles.map(role => (
+                <Button 
+                    key={role} 
+                    onClick={() => switchUserRole(role)}
+                    className={`!px-4 !py-2 text-sm capitalize ${roleColors[role]}`}
                 >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                </button>
-                {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                        {totalItems}
-                    </span>
-                )}
-            </div>
+                    {role}
+                </Button>
+            ))}
+        </div>
+    );
+};
+
+
+const Header: React.FC<HeaderProps> = ({ title }) => {
+    return (
+        <header className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6 flex items-center justify-between sticky top-0 z-10">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 truncate pr-4">{title}</h1>
+            <RoleSwitcher />
         </header>
     );
 };

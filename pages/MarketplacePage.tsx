@@ -4,16 +4,16 @@ import Card, { CardHeader, CardTitle, CardContent } from '../components/common/C
 import Button from '../components/common/Button';
 import { generateDescription, generatePricingSuggestion, generateVideoFromStory, getVideoGenerationStatus, transcribeAndGenerateFromAudio, generateProductDetailsFromInput, transcribeAudio, downloadVideo } from '../services/geminiService';
 import { generateSocialMediaPost } from '../services/geminiService';
-import type { Product } from '../types';
+import type { Product, Certificate } from '../types';
 import { useLocalization } from '../hooks/useLocalization';
 import { AppContext } from '../contexts/AppContext';
 
 // #region Reusable Components
-const SocialPlatformIcon: React.FC<{ platform: 'instagram' | 'facebook' | 'youtube' }> = ({ platform }) => {
+const SocialPlatformIcon: React.FC<{ platform: 'instagram' | 'facebook' | 'whatsapp' }> = ({ platform }) => {
     const icons = {
         instagram: <svg viewBox="0 0 24 24" className="w-8 h-8"><defs><linearGradient id="insta-grad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" style={{stopColor:'#f09433'}} /><stop offset="25%" style={{stopColor:'#e6683c'}} /><stop offset="50%" style={{stopColor:'#dc2743'}} /><stop offset="75%" style={{stopColor:'#cc2366'}} /><stop offset="100%" style={{stopColor:'#bc1888'}} /></linearGradient></defs><path fill="url(#insta-grad)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664 4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163zm0 1.441c-3.117 0-3.491.011-4.71.066-2.839.13-4.111 1.4-4.24 4.24-.055 1.22-.066 1.593-.066 4.71s.011 3.491.066 4.71c.13 2.839 1.4 4.111 4.24 4.24 1.218.055 1.593.066 4.71.066s3.491-.011 4.71-.066c2.839-.13 4.111-1.4 4.24-4.24.055-1.22.066-1.593.066-4.71s-.011-3.491-.066-4.71c-.13-2.839-1.4-4.111-4.24-4.24-1.218-.055-1.593.066-4.71-.066zm0 2.882a4.512 4.512 0 100 9.024 4.512 4.512 0 000-9.024zM12 15a3 3 0 110-6 3 3 0 010 6zm4.805-7.872a1.08 1.08 0 100-2.16 1.08 1.08 0 000 2.16z" /></svg>,
         facebook: <svg viewBox="0 0 24 24" className="w-8 h-8 text-[#1877F2]" fill="currentColor"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3l-.5 3h-2.5v6.8c4.56-.93 8-4.96 8-9.8z"/></svg>,
-        youtube: <svg viewBox="0 0 24 24" className="w-8 h-8 text-[#FF0000]" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91-1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23-1.54-.91-1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM9.5 15.5V8.5l6 3.5-6 3.5z"/></svg>,
+        whatsapp: <svg viewBox="0 0 24 24" className="w-8 h-8 text-[#25D366]" fill="currentColor"><path d="M12.04 2.01C5.43 2.01 0 7.43 0 14.05c0 2.37.7 4.59 1.97 6.48l-2 7.45 7.63-2.02c1.82 1.15 3.96 1.8 6.2 1.8h.01c6.6 0 11.96-5.41 11.96-12.03C24 7.44 18.64 2.01 12.04 2.01zM12.04 23.09c-2.13 0-4.17-.6-5.91-1.72l-.42-.25-4.38 1.15 1.18-4.28-.28-.44c-1.21-1.9-1.85-4.13-1.85-6.49 0-5.52 4.49-10 10-10s10 4.48 10 10-4.49 10-10 10zm5.2-6.52c-.28-.14-1.65-.81-1.9-.91-.25-.1-.44-.14-.62.14-.18.28-.72.91-.88 1.1-.16.18-.32.21-.6.07-.28-.14-1.18-.44-2.25-1.39-1.07-.95-1.79-2.12-2-2.48-.21-.36-.02-.55.12-.69.13-.13.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.05-.32-.02-.46-.07-.14-.62-1.5-.85-2.05-.23-.55-.46-.48-.62-.48h-.52c-.18 0-.46.07-.7.35-.24.28-.92 1.02-.92 2.48s.94 2.89 1.07 3.09c.13.2 1.85 2.96 4.49 4.22 2.64 1.26 2.64.84 3.12.79.48-.05 1.65-.67 1.88-1.32.23-.65.23-1.2.16-1.32c-.07-.12-.26-.2-.53-.34z"/></svg>,
     };
     return icons[platform];
 };
@@ -207,10 +207,12 @@ const AIRecordingAnalysis: React.FC<{ onGenerated: (data: any) => void, onBack: 
 };
 
 const ReviewAndPublish: React.FC<{ initialData: Partial<Product> & { transcription?: string }, onBack: () => void, pricingSuggestion?: any }> = ({ initialData, onBack, pricingSuggestion }) => {
+    // FIX: Destructured properties from AppContext instead of useLocalization.
     const { t, language } = useLocalization();
-    const { addProduct } = useContext(AppContext)!;
+    const { addProduct, certificates, setActivePage } = useContext(AppContext)!;
     const [productData, setProductData] = useState<Partial<Product>>(initialData);
     const [step, setStep] = useState<'review' | 'success'>('review');
+    const [selectedCertId, setSelectedCertId] = useState<string | undefined>(initialData.certificateId);
     
     // State for video generation
     const [videoGenerationStatus, setVideoGenerationStatus] = useState<'idle' | 'generating' | 'polling' | 'done' | 'error'>('idle');
@@ -230,6 +232,8 @@ const ReviewAndPublish: React.FC<{ initialData: Partial<Product> & { transcripti
     const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
     const storyMediaRecorderRef = useRef<MediaRecorder | null>(null);
     const storyAudioChunksRef = useRef<Blob[]>([]);
+
+    const unassignedCerts = certificates.filter(c => !c.assignedToProductId);
     
     useEffect(() => {
         // Cleanup timeout on component unmount
@@ -343,7 +347,7 @@ const ReviewAndPublish: React.FC<{ initialData: Partial<Product> & { transcripti
             alert("Please fill in all required fields: Name, Description, Price, and Image.");
             return;
         }
-        addProduct(productData as any);
+        addProduct(productData as any, selectedCertId);
         setStep('success');
     };
 
@@ -418,19 +422,42 @@ const ReviewAndPublish: React.FC<{ initialData: Partial<Product> & { transcripti
             )}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Editable Form */}
-                <Card className="lg:col-span-1">
-                    <CardContent className="space-y-4">
-                        <div><label className="font-semibold block mb-1">Product Name</label><input type="text" value={productData.name || ''} onChange={e => handleDataChange('name', e.target.value)} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
-                        <div><label className="font-semibold block mb-1">Description</label><textarea value={productData.description || ''} onChange={e => handleDataChange('description', e.target.value)} className="w-full p-2 border rounded h-32 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
-                        <div><label className="font-semibold block mb-1">Craft Tradition</label><input type="text" value={productData.craftTradition || ''} onChange={e => handleDataChange('craftTradition', e.target.value)} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
-                        <div><label className="font-semibold block mb-1">Category</label><input type="text" value={productData.category || ''} onChange={e => handleDataChange('category', e.target.value)} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
-                        <div>
-                            <label className="font-semibold block mb-1">Final Price (₹)</label>
-                            {pricingSuggestion && <p className="text-sm text-slate-500 mb-2">AI Suggests: ₹{pricingSuggestion.minPrice} - ₹{pricingSuggestion.maxPrice}</p>}
-                            <input type="number" value={productData.price || ''} onChange={e => handleDataChange('price', Number(e.target.value))} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="space-y-6">
+                    <Card className="lg:col-span-1">
+                        <CardContent className="space-y-4">
+                            <div><label className="font-semibold block mb-1">Product Name</label><input type="text" value={productData.name || ''} onChange={e => handleDataChange('name', e.target.value)} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
+                            <div><label className="font-semibold block mb-1">Description</label><textarea value={productData.description || ''} onChange={e => handleDataChange('description', e.target.value)} className="w-full p-2 border rounded h-32 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
+                            <div><label className="font-semibold block mb-1">Craft Tradition</label><input type="text" value={productData.craftTradition || ''} onChange={e => handleDataChange('craftTradition', e.target.value)} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
+                            <div><label className="font-semibold block mb-1">Category</label><input type="text" value={productData.category || ''} onChange={e => handleDataChange('category', e.target.value)} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/></div>
+                            <div>
+                                <label className="font-semibold block mb-1">Final Price (₹)</label>
+                                {pricingSuggestion && <p className="text-sm text-slate-500 mb-2">AI Suggests: ₹{pricingSuggestion.minPrice} - ₹{pricingSuggestion.maxPrice}</p>}
+                                <input type="number" value={productData.price || ''} onChange={e => handleDataChange('price', Number(e.target.value))} className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/>
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader><CardTitle>Attach Digital Certificate (Optional)</CardTitle></CardHeader>
+                        <CardContent>
+                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                                {unassignedCerts.length > 0 ? (
+                                    unassignedCerts.map(cert => (
+                                        <label key={cert.id} className={`flex items-center p-3 rounded-lg border-2 cursor-pointer ${selectedCertId === cert.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/50' : 'border-slate-200 dark:border-slate-700'}`}>
+                                            <input type="radio" name="certificate" value={cert.id} checked={selectedCertId === cert.id} onChange={() => setSelectedCertId(cert.id)} className="w-5 h-5 text-teal-600 focus:ring-teal-500" />
+                                            <img src={cert.image} alt={cert.artworkName} className="w-12 h-12 rounded-md object-cover mx-4" />
+                                            <span className="font-semibold">{cert.artworkName}</span>
+                                        </label>
+                                    ))
+                                ) : (
+                                    <p className="text-slate-500 text-center text-sm py-4">You have no unassigned certificates.</p>
+                                )}
+                            </div>
+                             <Button variant="secondary" className="w-full mt-4" onClick={() => setActivePage('nft')}>
+                                Create New Certificate
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
                 {/* Preview and Optional Steps */}
                 <div className="space-y-6">
                     <Card>
@@ -711,37 +738,95 @@ const MarketplacePage: React.FC = () => {
     const { t, language } = useLocalization();
     const [activeView, setActiveView] = useState<'main' | 'wizard' | 'voice' | 'review'>('main');
     const [productDataForReview, setProductDataForReview] = useState<Partial<Product> & { transcription?: string }>({});
-    const [pricingSuggestion, setPricingSuggestion] = useState<any>(null);
+    const [pricingResult, setPricingResult] = useState<{ minPrice?: number; maxPrice?: number; reasoning?: string; sources?: any[] } | null>(null);
     const [activeTab, setActiveTab] = useState<'description' | 'pricing' | 'video'>('description');
     
     // State for individual tools
     const [descPrompt, setDescPrompt] = useState('');
     const [pricingPrompt, setPricingPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [generatedDescription, setGeneratedDescription] = useState('');
+    const [copied, setCopied] = useState(false);
     
+    // State for voice input
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+    const hasSpeechSupport = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+    const handleListen = useCallback(() => {
+        if (!hasSpeechSupport) {
+            alert(t('marketplace.noSpeechSupport'));
+            return;
+        }
+
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setDescPrompt(prev => (prev ? prev.trim() + ' ' : '') + transcript);
+        };
+        recognition.onend = () => setIsListening(false);
+        recognition.onerror = (e: any) => {
+            console.error("Speech recognition error:", e.error);
+            setIsListening(false);
+        };
+        
+        recognition.start();
+        setIsListening(true);
+        recognitionRef.current = recognition;
+    }, [isListening, hasSpeechSupport, language, t]);
+
     const goToReview = (newData: Partial<Product> & { transcription?: string }, priceSuggest?: any) => {
         setProductDataForReview(prev => ({ ...prev, ...newData }));
-        if(priceSuggest) setPricingSuggestion(priceSuggest);
+        if(priceSuggest) setPricingResult(priceSuggest);
         setActiveView('review');
     };
     
     const handleGenerateDescription = async () => {
         if (!descPrompt) return;
         setIsGenerating(true);
+        setGeneratedDescription('');
         try {
             const result = await generateDescription(descPrompt, language);
-            goToReview({ description: result });
+            setGeneratedDescription(result);
         } catch (e: any) { alert(e.message); } 
-        finally { setIsGenerating(false); setDescPrompt(''); }
+        finally { setIsGenerating(false); }
     };
 
     const handleGetPrice = async () => {
         if (!pricingPrompt) return;
         setIsGenerating(true);
+        setPricingResult(null);
         try {
             const result = await generatePricingSuggestion(pricingPrompt, language);
-            const parsed = JSON.parse(result.text);
-            setPricingSuggestion(parsed);
+            const text = result.text;
+            let parsed = null;
+            try {
+                // Extract JSON from markdown code block
+                const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+                if (jsonMatch && jsonMatch[1]) {
+                    parsed = JSON.parse(jsonMatch[1]);
+                } else {
+                    // Fallback to parsing the whole text if no markdown block
+                    parsed = JSON.parse(text);
+                }
+            } catch (e) {
+                console.error("Could not parse pricing suggestion JSON:", e);
+                // Set the reasoning to the raw text if parsing fails
+                parsed = { reasoning: text };
+            }
+            
+            const sources = result.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+            
+            setPricingResult({ ...parsed, sources });
+
         } catch (e: any) { alert(e.message); }
         finally { setIsGenerating(false); }
     };
@@ -749,9 +834,76 @@ const MarketplacePage: React.FC = () => {
     const renderMainContent = () => {
         switch (activeTab) {
             case 'description':
-                return <CardContent className="space-y-4"><p>{t('marketplace.descriptionTab.description')}</p><textarea value={descPrompt} onChange={e => setDescPrompt(e.target.value)} placeholder={t('marketplace.descriptionTab.placeholder')} className="w-full p-2 border rounded h-24 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400" /><Button onClick={handleGenerateDescription} isLoading={isGenerating}>{t('marketplace.descriptionTab.button')}</Button></CardContent>;
+                return (
+                    <CardContent className="space-y-4">
+                        <p>{t('marketplace.descriptionTab.description')}</p>
+                        <div className="relative">
+                            <textarea value={descPrompt} onChange={e => setDescPrompt(e.target.value)} placeholder={t('marketplace.descriptionTab.placeholder')} className="w-full p-2 pr-12 border rounded h-24 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400" />
+                            {hasSpeechSupport && (
+                                <button
+                                    type="button"
+                                    onClick={handleListen}
+                                    className={`absolute top-2 right-2 p-2 rounded-full transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600'}`}
+                                >
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7v2h6v-2h-2v-2.07z" clipRule="evenodd" /></svg>
+                                </button>
+                            )}
+                        </div>
+                        <Button onClick={handleGenerateDescription} isLoading={isGenerating} disabled={!descPrompt}>{t('marketplace.descriptionTab.button')}</Button>
+                        {generatedDescription && (
+                            <div className="p-4 bg-slate-100 dark:bg-slate-700/50 rounded-lg space-y-4 animate-fadeInUp">
+                                <div>
+                                    <p className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Generated Description</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{generatedDescription}</p>
+                                </div>
+                                <Button 
+                                    variant="secondary" 
+                                    className="!py-2 !px-4 text-sm"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(generatedDescription);
+                                        setCopied(true);
+                                        setTimeout(() => setCopied(false), 2000);
+                                    }}
+                                >
+                                    {copied ? 'Copied!' : 'Copy Description'}
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                );
             case 'pricing':
-                return <CardContent className="space-y-4"><p>{t('marketplace.pricing.description')}</p><textarea value={pricingPrompt} onChange={e => setPricingPrompt(e.target.value)} placeholder={t('marketplace.pricing.placeholder')} className="w-full p-2 border rounded h-24 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400" /><Button onClick={handleGetPrice} isLoading={isGenerating}>{t('marketplace.pricing.button')}</Button>{pricingSuggestion && <div className="p-4 bg-slate-100 rounded-lg">...</div>}</CardContent>;
+                return (
+                    <CardContent className="space-y-4">
+                        <p>{t('marketplace.pricing.description')}</p>
+                        <textarea value={pricingPrompt} onChange={e => setPricingPrompt(e.target.value)} placeholder={t('marketplace.pricing.placeholder')} className="w-full p-2 border rounded h-24 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400" />
+                        <Button onClick={handleGetPrice} isLoading={isGenerating} disabled={!pricingPrompt}>{t('marketplace.pricing.button')}</Button>
+                        {pricingResult && (
+                            <div className="p-4 bg-slate-100 dark:bg-slate-700/50 rounded-lg space-y-4 animate-fadeInUp">
+                                {(pricingResult.minPrice && pricingResult.maxPrice) && (
+                                     <div>
+                                        <p className="font-semibold text-slate-700 dark:text-slate-200">{t('marketplace.pricing.suggestedPrice')}:</p>
+                                        <p className="text-2xl font-bold text-teal-600">₹{pricingResult.minPrice} - ₹{pricingResult.maxPrice}</p>
+                                    </div>
+                                )}
+                                {pricingResult.reasoning && <p className="text-sm text-slate-600 dark:text-slate-300">{pricingResult.reasoning}</p>}
+                                {pricingResult.sources && pricingResult.sources.length > 0 && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-slate-500">{t('marketplace.pricing.sources')}</p>
+                                        <ul className="list-disc list-inside text-xs mt-1 space-y-1">
+                                            {pricingResult.sources.map((source, index) => (
+                                                <li key={index} className="truncate">
+                                                    <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" title={source.web.uri}>
+                                                        {source.web.title || source.web.uri}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                );
             case 'video':
                 return <VideoAdCreator />;
             default: return null;
@@ -760,7 +912,7 @@ const MarketplacePage: React.FC = () => {
     
     if (activeView === 'wizard') return <AIProductWizard onGenerated={(data) => goToReview(data, data.pricingSuggestion)} onBack={() => setActiveView('main')} />;
     if (activeView === 'voice') return <AIRecordingAnalysis onGenerated={(data) => goToReview(data, data.pricingSuggestion)} onBack={() => setActiveView('main')} />;
-    if (activeView === 'review') return <ReviewAndPublish initialData={productDataForReview} pricingSuggestion={pricingSuggestion} onBack={() => { setActiveView('main'); setProductDataForReview({}); setPricingSuggestion(null); }} />;
+    if (activeView === 'review') return <ReviewAndPublish initialData={productDataForReview} pricingSuggestion={pricingResult} onBack={() => { setActiveView('main'); setProductDataForReview({}); setPricingResult(null); }} />;
 
     return (
         <div className="space-y-8">
@@ -816,7 +968,7 @@ const MarketplacePage: React.FC = () => {
 
 const SocialMediaToolkit: React.FC = () => {
     const { t, language } = useLocalization();
-    const [platform, setPlatform] = useState<'instagram' | 'facebook' | 'youtube' | null>(null);
+    const [platform, setPlatform] = useState<'instagram' | 'facebook' | 'whatsapp' | null>(null);
     const [prompt, setPrompt] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -843,24 +995,32 @@ const SocialMediaToolkit: React.FC = () => {
     };
 
     const handleShare = async () => {
-        if (!result || !imageFile) {
-            alert("Please generate content and select an image to share.");
+        if (!result) {
+            alert("Please generate content to share.");
             return;
         }
-        const shareData = {
-            text: `${result.postContent}\n\n${result.hashtags.map(h => `#${h}`).join(' ')}`,
-            files: [imageFile],
-            title: 'My Artisan Craft',
-        };
+        
+        const shareText = `${result.postContent}\n\n${result.hashtags.map(h => `#${h}`).join(' ')}`;
+        
         try {
-            if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-                await navigator.share(shareData);
-            } else {
-                navigator.clipboard.writeText(shareData.text);
-                alert("Post text copied! Your browser doesn't support direct image sharing, please attach the image manually.");
+            // Web Share API with files is still experimental, so we check for it.
+            if (imageFile && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+                await navigator.share({
+                    text: shareText,
+                    files: [imageFile],
+                    title: 'My Artisan Craft',
+                });
+            } else if (navigator.share) { // Fallback to sharing text only
+                 await navigator.share({ text: shareText, title: 'My Artisan Craft' });
+            } else { // Fallback for browsers that don't support Web Share API at all
+                navigator.clipboard.writeText(shareText);
+                alert("Post text copied to clipboard! Your browser doesn't support direct sharing.");
             }
         } catch (err) {
             console.error('Share failed:', err);
+             // If sharing fails (e.g., user cancels), copy text as a fallback
+            navigator.clipboard.writeText(shareText);
+            alert("Sharing was cancelled or failed. Post text has been copied to your clipboard.");
         }
     };
 
@@ -878,13 +1038,13 @@ const SocialMediaToolkit: React.FC = () => {
                  </div>
                  <div><label className="font-semibold block mb-2">2. Choose Platform & Describe Post</label>
                     <div className="grid grid-cols-3 gap-2 mb-2">
-                        {(['instagram', 'facebook', 'youtube'] as const).map(p => (
-                            <button key={p} onClick={() => setPlatform(p)} className={`p-2 rounded-lg border-2 ${platform === p ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/50' : 'border-slate-300 dark:border-slate-600'}`}><SocialPlatformIcon platform={p} /></button>
+                        {(['instagram', 'facebook', 'whatsapp'] as const).map(p => (
+                            <button key={p} onClick={() => setPlatform(p)} className={`p-2 rounded-lg border-2 flex justify-center ${platform === p ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/50' : 'border-slate-300 dark:border-slate-600'}`}><SocialPlatformIcon platform={p} /></button>
                         ))}
                     </div>
                     <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t('marketplace.social.placeholder')} className="w-full p-2 border rounded h-24 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400"/>
                 </div>
-                <Button onClick={handleGenerate} isLoading={isLoading} disabled={!prompt || !platform || !imageFile} className="w-full">Generate Post</Button>
+                <Button onClick={handleGenerate} isLoading={isLoading} disabled={!prompt || !platform} className="w-full">Generate Post</Button>
                 {result && (
                      <div className="mt-4 p-4 bg-slate-50 rounded-xl border flex-grow flex flex-col dark:bg-slate-800/50 dark:border-slate-700">
                         <p className="whitespace-pre-wrap flex-grow">{result.postContent}</p>

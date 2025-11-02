@@ -1,6 +1,7 @@
 import type { Part } from "@google/genai";
+import { FieldValue } from "firebase/firestore";
 
-export type Page = 'dashboard' | 'marketplace' | 'volunteers' | 'finance' | 'nft' | 'training' | 'chat' | 'photo-studio' | 'cart' | 'customer-marketplace' | 'customer-cart' | 'customer-favorites' | 'customer-profile' | 'customer-checkout' | 'customer-chat';
+export type Page = 'dashboard' | 'marketplace' | 'volunteers' | 'finance' | 'nft' | 'training' | 'chat' | 'photo-studio' | 'cart' | 'customer-marketplace' | 'customer-cart' | 'customer-favorites' | 'customer-profile' | 'customer-checkout' | 'customer-chat' | 'customer-orders' | 'customer-offers';
 
 export type Role = 'artisan' | 'volunteer' | 'customer';
 
@@ -30,7 +31,7 @@ export interface Product {
   category: string;
   artisanId: string;
   dateAdded: string; // ISO 8601 format
-  certificateId: string;
+  certificateId?: string;
   craftTradition: string;
   storyVideoUrl?: string;
 }
@@ -48,6 +49,7 @@ export interface CompletedProject {
     artisanAvatar: string;
     certificateText: string;
     skills: string[];
+    issuedDate: string;
 }
 
 export interface Testimonial {
@@ -89,6 +91,7 @@ export interface TrainingModule {
     category: string;
     thumbnail: string;
     duration: string;
+    videoUrl: string;
 }
 
 export interface DesignIdea {
@@ -99,10 +102,10 @@ export interface DesignIdea {
 }
 
 export interface ChatMessage {
-  id: number;
+  id: string;
   senderId: string;
   text: string;
-  timestamp: string; // ISO 8601 format
+  timestamp: FieldValue | any;
 }
 
 export interface Conversation {
@@ -110,6 +113,16 @@ export interface Conversation {
   participantIds: string[];
   participants: { [key: string]: { name: string, avatar: string } };
   messages: ChatMessage[];
+  lastMessage?: {
+    text: string;
+    timestamp: any;
+  }
+}
+
+export interface ParticipantDetails {
+    id: string;
+    name: string;
+    avatar: string;
 }
 
 export interface ProjectApplication {
@@ -131,4 +144,52 @@ export interface Collaboration {
   status: 'in-progress' | 'completed';
   rating?: number;
   feedback?: string;
+}
+
+export interface BargainRequest {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  customerId: string;
+  customerName: string;
+  artisanId: string;
+  originalPrice: number;
+  offerPrice: number;
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  requestDate: any; // FieldValue
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: 'success' | 'info' | 'error';
+  link?: {
+    text: string;
+    action: () => void;
+  };
+}
+
+export type ConnectionRequestStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface ConnectionRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  senderName: string;
+  senderAvatar: string;
+  senderRole: Role;
+  status: ConnectionRequestStatus;
+  timestamp: any; // FieldValue
+}
+
+export interface Certificate {
+  id: string;
+  artworkName: string;
+  artistName: string;
+  craftTradition: string;
+  certifiedDate: any; // Firestore Timestamp
+  heritageStory: string;
+  image: string; // The image associated with this specific certificate
+  assignedToProductId?: string;
 }

@@ -1,17 +1,17 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { AppContext } from '../../contexts/AppContext';
-import Card from '../../components/common/Card';
+import Card, { CardContent } from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { useLocalization } from '../../hooks/useLocalization';
-import type { Product } from '../../types';
+import type { Product, Role } from '../../types';
 
 const CustomerMarketplacePage: React.FC = () => {
     const { t } = useLocalization();
     const { products, artisans, setSelectedProduct, toggleFavorite, isFavorite, setSelectedPortfolioUser } = useContext(AppContext)!;
+    const [selectedCategory, setSelectedCategory] = useState<string>('All');
     
     const categories = useMemo(() => {
         const uniqueCategories = [...new Set(products.map(p => p.category))];
-        // FIX: Reverted to an object literal with computed properties. The previous Map implementation was causing a type error.
         const categoryIcons: Record<string, string> = {
             [t('categories.pottery')]: '🏺',
             [t('categories.textiles')]: '🧵',
@@ -20,9 +20,15 @@ const CustomerMarketplacePage: React.FC = () => {
             [t('categories.paintings')]: '🎨',
             [t('categories.sarees')]: '🥻',
         };
-        // FIX: Explicitly type 'cat' as a string to resolve index type error.
         return uniqueCategories.map((cat: string) => ({ name: cat, icon: categoryIcons[cat] || '✨' }));
     }, [products, t]);
+
+    const filteredProducts = useMemo(() => {
+        if (selectedCategory === 'All') {
+            return products;
+        }
+        return products.filter(p => p.category === selectedCategory);
+    }, [products, selectedCategory]);
 
     const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         const favorite = isFavorite(product.id);
@@ -65,7 +71,7 @@ const CustomerMarketplacePage: React.FC = () => {
         <div className="animate-fade-in">
             {/* Hero Section */}
             <div className="relative h-[60vh] rounded-b-3xl overflow-hidden mb-16">
-                <img src="https://images.unsplash.com/photo-1510653303433-a859b7df089e?w=1600&h=800&fit=crop&q=80" alt="Artisan craft" className="w-full h-full object-cover" />
+                <img src="https://images.hindustantimes.com/rf/image_size_630x354/HT/p2/2020/05/20/Pictures/_10059fa6-9a46-11ea-b5cf-22f71a9413fe.jpg" alt="Artisan craft" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40"></div>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center p-4">
                     <h1 className="text-5xl md:text-7xl font-bold">{t('customer.marketplace.heroTitle')}</h1>
@@ -78,12 +84,22 @@ const CustomerMarketplacePage: React.FC = () => {
                 {/* Categories Section */}
                 <section className="mb-16">
                     <h2 className="text-3xl font-bold text-center mb-8">{t('customer.marketplace.browseCategories')}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                    <div className="flex flex-wrap justify-center gap-4">
+                        <button
+                            onClick={() => setSelectedCategory('All')}
+                            className={`px-6 py-3 rounded-full font-semibold transition-colors ${selectedCategory === 'All' ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm'}`}
+                        >
+                            All
+                        </button>
                         {categories.map(cat => (
-                            <div key={cat.name} className="flex flex-col items-center p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer">
-                                <span className="text-4xl mb-2">{cat.icon}</span>
-                                <span className="font-semibold">{cat.name}</span>
-                            </div>
+                            <button
+                                key={cat.name}
+                                onClick={() => setSelectedCategory(cat.name)}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-colors ${selectedCategory === cat.name ? 'bg-teal-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm'}`}
+                            >
+                                <span className="text-xl">{cat.icon}</span>
+                                <span>{cat.name}</span>
+                            </button>
                         ))}
                     </div>
                 </section>
@@ -91,9 +107,16 @@ const CustomerMarketplacePage: React.FC = () => {
                 {/* Products Section */}
                 <section>
                     <h2 className="text-3xl font-bold text-center mb-8">{t('customer.marketplace.featuredProducts')}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                         {products.map(product => <ProductCard key={product.id} product={product} />)}
-                    </div>
+                     {filteredProducts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {filteredProducts.map(product => <ProductCard key={product.id} product={product} />)}
+                        </div>
+                    ) : (
+                         <div className="text-center py-10">
+                            <p className="text-slate-500 font-semibold text-lg">{t('marketplace.shop.noResults')}</p>
+                            <p className="text-slate-400 mt-2">{t('marketplace.shop.noResultsHint')}</p>
+                        </div>
+                    )}
                 </section>
             </div>
             <style>{`.animate-fade-in { animation: fade-in 0.5s ease-out forwards; } @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }`}</style>

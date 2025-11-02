@@ -15,6 +15,7 @@ import ProfileSetupPage from './pages/ProfileSetupPage';
 import CustomerApp from './pages/CustomerApp';
 import ArtisanProfilePage from './pages/ArtisanProfilePage';
 import VolunteerProfilePage from './pages/VolunteerProfilePage';
+import CustomerProductDetailPage from './pages/customer/CustomerProductDetailPage';
 import type { Page, Artisan, Volunteer } from './types';
 import { AppProvider, AppContext } from './contexts/AppContext';
 import LandingPage from './pages/LandingPage';
@@ -37,7 +38,8 @@ const DashboardApp: React.FC = () => {
       setSelectedPortfolioUser,
       artisans,
       volunteers,
-      firestoreError
+      firestoreError,
+      selectedProduct
     } = useContext(AppContext)!;
     
     const [showError, setShowError] = useState(false);
@@ -76,9 +78,14 @@ const DashboardApp: React.FC = () => {
         'customer-profile': '',
         'customer-checkout': '',
         'customer-chat': t('sidebar.chat'),
+        'customer-orders': 'My Orders',
+        'customer-offers': 'My Offers',
     };
     
     const renderPageTitle = () => {
+        if (selectedProduct) {
+            return selectedProduct.name;
+        }
         if (selectedPortfolioUser) {
             return selectedPortfolioUser.name;
         }
@@ -86,6 +93,10 @@ const DashboardApp: React.FC = () => {
     };
 
     const renderContent = () => {
+        if (selectedProduct) {
+            const artisan = artisans.find(a => a.id === selectedProduct.artisanId);
+            return <CustomerProductDetailPage product={selectedProduct} artisan={artisan} />;
+        }
         if (selectedPortfolioUser) {
             if (selectedPortfolioUser.role === 'artisan') {
                 return <ArtisanProfilePage artisan={selectedPortfolioUser as Artisan} />;

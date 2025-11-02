@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import type { Volunteer, CompletedProject } from '../types';
 import Button from '../components/common/Button';
@@ -11,12 +11,47 @@ interface Props {
 
 const VolunteerProfilePage: React.FC<Props> = ({ volunteer }) => {
     const { t, language } = useLocalization();
-    const { setSelectedPortfolioUser, startChat, setActivePage } = useContext(AppContext)!;
+    const { 
+        setSelectedPortfolioUser, 
+        startChat, 
+        currentUser, 
+        updateUserProfile,
+        connectionRequests,
+        sendConnectionRequest
+    } = useContext(AppContext)!;
     const [viewingCertificate, setViewingCertificate] = useState<CompletedProject | null>(null);
 
-    const handleConnect = () => {
-        startChat(volunteer.id);
-        setActivePage('chat');
+    const isOwnProfile = currentUser?.id === volunteer.id;
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const newAvatar = reader.result as string;
+                updateUserProfile({ avatar: newAvatar });
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+    
+    const ConnectButton: React.FC = () => {
+        if (isOwnProfile) return null;
+
+        const existingRequest = connectionRequests.find(
+            req => (req.senderId === currentUser?.id && req.receiverId === volunteer.id) || (req.senderId === volunteer.id && req.receiverId === currentUser?.id)
+        );
+
+        if (existingRequest) {
+            if (existingRequest.status === 'accepted') {
+                return <Button onClick={() => startChat(volunteer)} className="w-full mt-4">{t('profile.message')}</Button>;
+            }
+            if (existingRequest.status === 'pending' && existingRequest.senderId === currentUser?.id) {
+                return <Button disabled className="w-full mt-4">{t('profile.requestSent')}</Button>;
+            }
+        }
+        
+        return <Button onClick={() => sendConnectionRequest(volunteer)} className="w-full mt-4">{t('profile.connect')}</Button>;
     };
 
     const CertificateModal: React.FC<{ project: CompletedProject, onClose: () => void }> = ({ project, onClose }) => (
@@ -51,14 +86,34 @@ const VolunteerProfilePage: React.FC<Props> = ({ volunteer }) => {
                 <div className="lg:col-span-1 space-y-8">
                     <Card className="text-center sticky top-28">
                         <CardContent className="p-8">
-                             <img src={volunteer.avatar} alt={volunteer.name} className="w-32 h-32 rounded-full ring-8 ring-white dark:ring-slate-800 mx-auto -mt-20" />
+                             <div className="relative w-32 h-32 mx-auto -mt-20">
+                                <img src={volunteer.avatar} alt={volunteer.name} className="w-full h-full object-cover rounded-full ring-8 ring-white dark:ring-slate-800" />
+                                {isOwnProfile && (
+                                    <>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleAvatarUpload}
+                                            className="hidden"
+                                            accept="image/*"
+                                        />
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="absolute bottom-1 right-1 w-9 h-9 bg-teal-600 rounded-full flex items-center justify-center text-white hover:bg-teal-700 transition-transform transform hover:scale-110 shadow-md border-2 border-white dark:border-slate-800"
+                                            aria-label="Upload new profile picture"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                              <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mt-6">{volunteer.name}</h1>
                              <div className="flex flex-wrap justify-center gap-2 my-4">
                                 {volunteer.skills.map(skill => (
                                     <span key={skill} className="bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full">{skill}</span>
                                 ))}
                             </div>
-                            <Button onClick={handleConnect} className="w-full mt-4">{t('profile.connect')}</Button>
+                            <ConnectButton />
                         </CardContent>
                     </Card>
                 </div>
@@ -79,7 +134,7 @@ const VolunteerProfilePage: React.FC<Props> = ({ volunteer }) => {
                             <div className="space-y-4">
                                 {volunteer.completedProjects.map(project => (
                                     <div key={project.id} className="flex items-center p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                                        <img src={project.artisanAvatar} alt={project.artisanName} className="w-12 h-12 rounded-full mr-4" />
+                                        <img src={project.artisanAvatar} alt={project.artisanName} className="w-12 h-12 rounded-full object-cover mr-4" />
                                         <div className="flex-1">
                                             <p className="font-bold">{project.projectName}</p>
                                             <p className="text-sm text-slate-500 dark:text-slate-400">with {project.artisanName}</p>
@@ -98,7 +153,7 @@ const VolunteerProfilePage: React.FC<Props> = ({ volunteer }) => {
                                     <blockquote key={index} className="p-4 border-l-4 border-teal-500 bg-slate-50 dark:bg-slate-700/50">
                                         <p className="italic text-slate-600 dark:text-slate-300">"{testimonial.quote}"</p>
                                         <footer className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center">
-                                            <img src={testimonial.artisanAvatar} alt={testimonial.artisanName} className="w-6 h-6 rounded-full mr-2" />
+                                            <img src={testimonial.artisanAvatar} alt={testimonial.artisanName} className="w-6 h-6 rounded-full object-cover mr-2" />
                                             &mdash; {testimonial.artisanName}
                                         </footer>
                                     </blockquote>

@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
-import type { Page, Artisan } from '../types';
+import type { Page, Artisan, BargainRequest, Product, User, ConnectionRequest, Role } from '../types';
 import Button from '../components/common/Button';
+import Card, { CardHeader, CardContent, CardTitle } from '../components/common/Card';
 import { useLocalization } from '../hooks/useLocalization';
 import { AppContext } from '../contexts/AppContext';
 
@@ -44,17 +45,93 @@ const SpotlightCard: React.FC<{ icon: React.ReactNode, title: string, descriptio
     </div>
 );
 
+const BargainRequests: React.FC = () => {
+    const { currentUser, bargainRequests, updateBargainRequestStatus } = useContext(AppContext)!;
+    const { t } = useLocalization();
+    const pendingRequests = bargainRequests.filter(req => req.artisanId === currentUser?.id && req.status === 'pending');
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('dashboard.artisan.bargain.title', { count: pendingRequests.length })}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {pendingRequests.length > 0 ? (
+                    <div className="space-y-4">
+                        {pendingRequests.map(req => (
+                            <div key={req.id} className="flex flex-col sm:flex-row items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl gap-4">
+                                <img src={req.productImage} alt={req.productName} className="w-16 h-16 rounded-lg object-cover" />
+                                <div className="flex-1 text-center sm:text-left">
+                                    <p><span className="font-bold">{req.customerName}</span> offered <span className="font-semibold text-teal-600">₹{req.offerPrice.toLocaleString()}</span> for <span className="font-semibold">{req.productName}</span></p>
+                                    <p className="text-sm text-slate-500">Original Price: ₹{req.originalPrice.toLocaleString()}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="primary" onClick={() => updateBargainRequestStatus(req.id, 'accepted')}>Accept</Button>
+                                    <Button variant="secondary" onClick={() => updateBargainRequestStatus(req.id, 'rejected')}>Reject</Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-slate-500 text-center py-4">{t('dashboard.artisan.bargain.empty')}</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+const ConnectionRequests: React.FC = () => {
+    const { currentUser, connectionRequests, respondToConnectionRequest } = useContext(AppContext)!;
+    const { t } = useLocalization();
+    const pendingRequests = connectionRequests.filter(req => req.receiverId === currentUser?.id && req.status === 'pending');
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('dashboard.artisan.connectionRequests.title')} ({pendingRequests.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {pendingRequests.length > 0 ? (
+                    <div className="space-y-4">
+                        {pendingRequests.map(req => (
+                            <div key={req.id} className="flex flex-col sm:flex-row items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl gap-4">
+                                <img src={req.senderAvatar} alt={req.senderName} className="w-16 h-16 rounded-full object-cover" />
+                                <div className="flex-1 text-center sm:text-left">
+                                    <p><span className="font-bold">{req.senderName}</span> wants to connect with you.</p>
+                                    <p className="text-sm text-slate-500 capitalize">{t(`roles.${req.senderRole}`)}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="primary" onClick={() => respondToConnectionRequest(req, 'accepted')}>Accept</Button>
+                                    <Button variant="secondary" onClick={() => respondToConnectionRequest(req, 'rejected')}>Reject</Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-slate-500 text-center py-4">{t('dashboard.artisan.connectionRequests.empty')}</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+
 const ArtisanWelcomePage: React.FC<DashboardPageProps> = ({ setActivePage }) => {
     const { t } = useLocalization();
     const { currentUser } = useContext(AppContext)!;
 
     return (
-      <div className="space-y-16">
+      <div className="space-y-8">
         {/* Hero Section */}
         <section className="text-center animate-fadeInUp" style={{ animationDelay: '0s' }}>
           <h1 className="text-5xl font-bold text-slate-800 dark:text-slate-100">{t('dashboard.artisan.welcome', { name: currentUser!.name.split(' ')[0] })}</h1>
           <p className="text-xl text-slate-500 dark:text-slate-400 mt-4 max-w-3xl mx-auto">{t('dashboard.artisan.subtitle')}</p>
         </section>
+        
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <BargainRequests />
+            <ConnectionRequests />
+        </div>
 
         {/* Getting Started Section */}
         <section>
@@ -94,18 +171,6 @@ const ArtisanWelcomePage: React.FC<DashboardPageProps> = ({ setActivePage }) => 
             />
           </div>
         </section>
-
-        {/* Feature Spotlight */}
-        <section className="bg-white dark:bg-slate-800 rounded-3xl p-10 flex flex-col lg:flex-row items-center gap-10 animate-fadeInUp" style={{ animationDelay: '1.2s' }}>
-            <div className="flex-1">
-                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{t('dashboard.artisan.spotlight.title')}</h2>
-                <p className="text-slate-600 dark:text-slate-300 mt-4 mb-6">{t('dashboard.artisan.spotlight.desc')}</p>
-                <Button onClick={() => setActivePage('marketplace')}>{t('dashboard.artisan.spotlight.button')}</Button>
-            </div>
-            <div className="flex-1 w-full lg:w-auto">
-                <img src="https://images.unsplash.com/photo-1555212697-194d092e3b8f?w=500&h=300&fit=crop&q=80" alt="AI Assistant" className="rounded-2xl shadow-xl w-full" />
-            </div>
-        </section>
       </div>
     );
 };
@@ -116,15 +181,17 @@ const VolunteerWelcomePage: React.FC<DashboardPageProps> = ({ setActivePage }) =
     const featuredArtisan = artisans.find(a => a.id === '102');
 
     return (
-        <div className="space-y-16">
+        <div className="space-y-8">
             {/* Hero Section */}
-            <section className="relative h-72 rounded-3xl overflow-hidden text-center flex flex-col items-center justify-center p-6 bg-cover bg-center animate-fadeInUp" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&h=400&fit=crop&q=80)', animationDelay: '0s' }}>
+            <section className="relative h-72 rounded-3xl overflow-hidden text-center flex flex-col items-center justify-center p-6 bg-cover bg-center animate-fadeInUp" style={{ backgroundImage: 'url(https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6kaGFdq7VUXUQlDXz5UI5--6dfQW76OX3Bw&s)', animationDelay: '0s' }}>
                 <div className="absolute inset-0 bg-black/50"></div>
                 <div className="relative z-10 text-white">
                     <h1 className="text-5xl font-bold">{t('dashboard.volunteer.heroTitle')}</h1>
                     <p className="text-xl mt-4 max-w-3xl mx-auto">{t('dashboard.volunteer.heroSubtitle', { name: currentUser!.name.split(' ')[0] })}</p>
                 </div>
             </section>
+
+            <ConnectionRequests />
 
             {/* Main Action Section */}
              <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
@@ -140,41 +207,13 @@ const VolunteerWelcomePage: React.FC<DashboardPageProps> = ({ setActivePage }) =
                 {featuredArtisan && (
                      <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 flex flex-col items-center text-center animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
                         <h3 className="text-xl font-bold mb-4">{t('dashboard.volunteer.featuredArtisan')}</h3>
-                        <img src={featuredArtisan.avatar} alt={featuredArtisan.name} className="w-24 h-24 rounded-full ring-4 ring-offset-4 ring-amber-500 mb-4" />
+                        <img src={featuredArtisan.avatar} alt={featuredArtisan.name} className="w-24 h-24 rounded-full object-cover ring-4 ring-offset-4 ring-amber-500 mb-4" />
                         <h4 className="font-bold text-xl">{featuredArtisan.name}</h4>
                         <p className="text-sm text-slate-500">{featuredArtisan.location}</p>
                         <p className="text-sm text-slate-600 dark:text-slate-300 mt-3 flex-grow italic">"{featuredArtisan.bio}"</p>
                         <Button variant="secondary" className="w-full mt-6" onClick={() => setSelectedPortfolioUser(featuredArtisan as Artisan)}>{t('dashboard.viewProfile')}</Button>
                     </div>
                 )}
-            </section>
-
-            {/* Use Cases Section */}
-             <section>
-                <h2 className="text-3xl font-bold text-center mb-10 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>{t('dashboard.volunteer.howToHelp')}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="text-center p-6 animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
-                        <div className="w-20 h-20 mx-auto rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-4">
-                           <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                        </div>
-                        <h4 className="text-xl font-bold mb-2">{t('dashboard.volunteer.step1_title')}</h4>
-                        <p className="text-slate-600 dark:text-slate-400">{t('dashboard.volunteer.step1_desc')}</p>
-                    </div>
-                    <div className="text-center p-6 animate-fadeInUp" style={{ animationDelay: '1.0s' }}>
-                         <div className="w-20 h-20 mx-auto rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-4">
-                           <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                        </div>
-                        <h4 className="text-xl font-bold mb-2">{t('dashboard.volunteer.step2_title')}</h4>
-                        <p className="text-slate-600 dark:text-slate-400">{t('dashboard.volunteer.step2_desc')}</p>
-                    </div>
-                    <div className="text-center p-6 animate-fadeInUp" style={{ animationDelay: '1.2s' }}>
-                        <div className="w-20 h-20 mx-auto rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-4">
-                            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.5l1.318-1.182a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" /></svg>
-                        </div>
-                        <h4 className="text-xl font-bold mb-2">{t('dashboard.volunteer.step3_title')}</h4>
-                        <p className="text-slate-600 dark:text-slate-400">{t('dashboard.volunteer.step3_desc')}</p>
-                    </div>
-                </div>
             </section>
         </div>
     );

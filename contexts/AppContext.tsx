@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { 
     getAuth, 
     onAuthStateChanged, 
@@ -10,11 +10,13 @@ import {
     updateProfile,
     User as FirebaseUser
 } from 'firebase/auth';
-import { collection, doc, getDocs, onSnapshot, setDoc, addDoc, writeBatch } from 'firebase/firestore';
+// FIX: Add getDocs to firebase/firestore import to resolve "Cannot find name 'getDocs'" error.
+import { collection, doc, getDoc, getDocs, onSnapshot, setDoc, addDoc, writeBatch, query, where, serverTimestamp, orderBy, updateDoc, Unsubscribe } from 'firebase/firestore';
 import { app, db } from '../firebaseConfig';
-import type { User, Page, Project, Volunteer, Artisan, Product, CartItem, Conversation, ChatMessage, Role } from '../types';
+import type { User, Page, Project, Volunteer, Artisan, Product, CartItem, Conversation, ChatMessage, Role, ParticipantDetails, BargainRequest, Notification, ConnectionRequest, ProjectApplication, Collaboration, CompletedProject, Certificate } from '../types';
 import { useLocalization, type Language, LocalizationProvider } from '../hooks/useLocalization';
 import { initialArtisans, initialVolunteers, initialProducts, initialProjects } from '../lib/initialData';
+import { generateCertificateText } from '../services/geminiService';
 
 type AuthPage = 'landing' | 'login' | 'signup';
 
@@ -30,11 +32,13 @@ interface AppContextType {
     setLanguage: (language: Language) => void;
     projects: Project[];
     setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+    postNewProject: (projectData: { title: string; description: string; skillsNeeded: string[] }) => Promise<void>;
     volunteers: Volunteer[];
     setVolunteers: React.Dispatch<React.SetStateAction<Volunteer[]>>;
     artisans: Artisan[];
     products: Product[];
-    addProduct: (productData: Omit<Product, 'id' | 'artisanId' | 'dateAdded' | 'certificateId'>) => void;
+    // FIX: Updated `addProduct` signature to accept an optional certificateId.
+    addProduct: (productData: Omit<Product, 'id' | 'artisanId' | 'dateAdded'>, certificateId?: string) => Promise<void>;
     selectedProduct: Product | null;
     setSelectedProduct: (product: Product | null) => void;
     selectedPortfolioUser: User | null;
@@ -47,10 +51,10 @@ interface AppContextType {
     toggleFavorite: (productId: string) => void;
     isFavorite: (productId: string) => boolean;
     conversations: Conversation[];
-    sendMessage: (conversationId: string, messageText: string) => void;
-    startChatWith: string | null;
-    startChat: (userId: string) => void;
-    createOrSelectConversation: (participantId: string) => string;
+    sendMessage: (conversationId: string, messageText: string) => Promise<void>;
+    startChatWith: ParticipantDetails | null;
+    startChat: (participant: ParticipantDetails) => void;
+    createOrSelectConversation: (participant: ParticipantDetails) => Promise<string>;
     
     // Auth
     firebaseUser: FirebaseUser | null;
@@ -65,6 +69,34 @@ interface AppContextType {
     bypassLogin: () => void;
     authPage: AuthPage;
     setAuthPage: (page: AuthPage) => void;
+    switchUserRole: (role: Role) => void;
+
+    // Bargaining
+    bargainRequests: BargainRequest[];
+    createBargainRequest: (product: Product, offerPrice: number) => Promise<void>;
+    updateBargainRequestStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
+    completeBargainRequest: (requestId: string) => Promise<void>;
+
+    // Connection Requests
+    connectionRequests: ConnectionRequest[];
+    sendConnectionRequest: (receiver: User) => Promise<void>;
+    respondToConnectionRequest: (request: ConnectionRequest, response: 'accepted' | 'rejected') => Promise<void>;
+
+    // Project Applications & Collaborations
+    projectApplications: ProjectApplication[];
+    collaborations: Collaboration[];
+    applyForProject: (project: Project) => Promise<void>;
+    respondToApplication: (application: ProjectApplication, response: 'accepted' | 'declined') => Promise<void>;
+    endCollaboration: (collaboration: Collaboration, feedback: string, rating: number) => Promise<void>;
+    issueCertificate: (collaboration: Collaboration) => Promise<void>;
+    // FIX: Added missing properties to context for certificate management.
+    addCertificate: (certificate: Certificate) => Promise<void>;
+    certificates: Certificate[];
+    getCertificate: (certificateId: string) => Promise<Certificate | null>;
+
+    // Notifications
+    notifications: Notification[];
+    removeNotification: (id: string) => void;
 
     clearStartChat: () => void;
     t: (key: string, replacements?: { [key: string]: string | number }) => string;
@@ -128,8 +160,11 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Data state
     const [projects, setProjects] = useState<Project[]>([]);
     const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+    const prevVolunteersRef = useRef<Volunteer[]>([]);
     const [artisans, setArtisans] = useState<Artisan[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    // FIX: Added state for certificates
+    const [certificates, setCertificates] = useState<Certificate[]>([]);
     const [firestoreError, setFirestoreError] = useState<string | null>(null);
     
     // UI State
@@ -142,49 +177,99 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Chat
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [startChatWith, setStartChatWith] = useState<string | null>(null);
+    const [startChatWith, setStartChatWith] = useState<ParticipantDetails | null>(null);
+    const messageListenersRef = useRef<{ [key: string]: () => void }>({});
     
+    // Bargaining, Connections & Notifications
+    const [bargainRequests, setBargainRequests] = useState<BargainRequest[]>([]);
+    const [connectionRequests, setConnectionRequests] = useState<ConnectionRequest[]>([]);
+    const [projectApplications, setProjectApplications] = useState<ProjectApplication[]>([]);
+    const [collaborations, setCollaborations] = useState<Collaboration[]>([]);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const prevBargainRequestsRef = useRef<BargainRequest[]>([]);
+    const prevConnectionRequestsRef = useRef<ConnectionRequest[]>([]);
+
+    const firestoreFailedRef = useRef(false);
+    const handleFirestoreError = (error: any, collectionName: string) => {
+        console.error(`Error fetching ${collectionName}: `, error);
+        if (!firestoreFailedRef.current && (error.code === 'permission-denied' || (error.message && error.message.includes('Missing or insufficient permissions')) || (error.message && error.message.includes('requires an index')))) {
+            firestoreFailedRef.current = true;
+            const errorMessage = "Could not connect to live database. Using sample data. Please check your Firebase configuration and security rules.";
+            setFirestoreError(errorMessage);
+            console.warn(`Firestore permission denied or index required. Falling back to initial local data. Please check your Firestore security rules to enable real-time features.`);
+            setProducts(initialProducts);
+            setProjects(initialProjects);
+            setArtisans(initialArtisans);
+            setVolunteers(initialVolunteers);
+        }
+    };
+
+    // #region Notification Functions
+    const removeNotification = (id: string) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    };
+
+    const addNotification = (message: string, type: 'success' | 'info' | 'error', link?: Notification['link']) => {
+        const id = Date.now().toString() + Math.random();
+        setNotifications(prev => [...prev, { id, message, type, link }]);
+        setTimeout(() => {
+            removeNotification(id);
+        }, 6000);
+    };
+    // #endregion
+
     // Seed database on initial load
     useEffect(() => {
         seedDatabase();
     }, []);
 
     useEffect(() => {
-        let firestoreFailed = false;
-
-        const handleFirestoreError = (error: any, collectionName: string) => {
-            console.error(`Error fetching ${collectionName}: `, error);
-            if (!firestoreFailed && (error.code === 'permission-denied' || (error.message && error.message.includes('Missing or insufficient permissions')))) {
-                firestoreFailed = true;
-                const errorMessage = "Could not connect to live database. Using sample data. Please check your Firebase configuration and security rules.";
-                setFirestoreError(errorMessage);
-                console.warn(`Firestore permission denied. Falling back to initial local data. Please check your Firestore security rules to enable real-time features.`);
-                setProducts(initialProducts);
-                setProjects(initialProjects);
-                setArtisans(initialArtisans);
-                setVolunteers(initialVolunteers);
-            }
-        };
-
         const productsUnsub = onSnapshot(collection(db, 'products'), (snapshot) => {
-            if (firestoreFailed) return;
+            if (firestoreFailedRef.current) return;
             const productsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as Product);
             setProducts(productsData.length > 0 ? productsData : initialProducts);
         }, (error) => handleFirestoreError(error, 'products'));
 
         const projectsUnsub = onSnapshot(collection(db, 'projects'), (snapshot) => {
-            if (firestoreFailed) return;
+            if (firestoreFailedRef.current) return;
             const projectsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as Project);
             setProjects(projectsData.length > 0 ? projectsData : initialProjects);
         }, (error) => handleFirestoreError(error, 'projects'));
         
         const usersUnsub = onSnapshot(collection(db, "users"), (snapshot) => {
-            if (firestoreFailed) return;
+            if (firestoreFailedRef.current) return;
             const allUsers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as User);
+            
             const artisansData = allUsers.filter(u => u.role === 'artisan') as Artisan[];
-            const volunteersData = allUsers.filter(v => v.role === 'volunteer') as Volunteer[];
             setArtisans(artisansData.length > 0 ? artisansData : initialArtisans);
+            
+            const volunteersData = allUsers.filter(v => v.role === 'volunteer') as Volunteer[];
             setVolunteers(volunteersData.length > 0 ? volunteersData : initialVolunteers);
+
+            // Check for new certificates for the current user if they are a volunteer
+            if (currentUser?.role === 'volunteer') {
+                const oldVolunteerProfile = prevVolunteersRef.current.find(v => v.id === currentUser.id);
+                const newVolunteerProfile = volunteersData.find(v => v.id === currentUser.id);
+
+                if (newVolunteerProfile && oldVolunteerProfile) {
+                    const oldCertCount = oldVolunteerProfile.completedProjects?.length || 0;
+                    const newCertCount = newVolunteerProfile.completedProjects?.length || 0;
+
+                    if (newCertCount > oldCertCount) {
+                        const newCert = newVolunteerProfile.completedProjects[newVolunteerProfile.completedProjects.length - 1];
+                        addNotification(
+                            `You've received a certificate for "${newCert.projectName}"!`, 
+                            'success',
+                            {
+                                text: 'View My Certifications',
+                                action: () => setActivePage('volunteers')
+                            }
+                        );
+                    }
+                }
+            }
+            prevVolunteersRef.current = volunteersData;
+
         }, (error) => handleFirestoreError(error, 'users'));
 
         return () => {
@@ -192,7 +277,23 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
             projectsUnsub();
             usersUnsub();
         };
-    }, []);
+    }, [currentUser]); // Re-run if currentUser changes to correctly identify volunteer
+
+    // FIX: Added a listener for certificates for the current artisan user.
+    useEffect(() => {
+        if (firestoreFailedRef.current || !currentUser || currentUser.role !== 'artisan') {
+            setCertificates([]);
+            return;
+        }
+
+        const q = query(collection(db, 'certificates'), where('artistName', '==', currentUser.name));
+        const unsubscribe = onSnapshot(q, snapshot => {
+            const certs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Certificate));
+            setCertificates(certs);
+        }, error => handleFirestoreError(error, 'certificates'));
+
+        return () => unsubscribe();
+    }, [currentUser]);
 
 
     useEffect(() => {
@@ -201,26 +302,23 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
 
             if (user) {
                 setIsAuthenticated(true);
-                setIsInitialLogin(true); // Flag that this is the first login sequence for this session
+                setIsInitialLogin(true); 
 
                 const userDocRef = doc(db, 'users', user.uid);
                 const unsubProfile = onSnapshot(userDocRef, (doc) => {
                     if (doc.exists()) {
                         setCurrentUser(doc.data() as User);
                     } else {
-                        // User exists in auth, but not in our DB (e.g., just signed up).
-                        // Set currentUser to null to trigger RoleSelectionPage.
                         setCurrentUser(null);
                     }
                     setAuthLoading(false);
                 }, (error) => {
                     console.error("Error listening to user profile:", error);
-                    setCurrentUser(null); // Fail safe
+                    setCurrentUser(null);
                     setAuthLoading(false);
                 });
                 return () => unsubProfile();
             } else {
-                // User is signed out
                 setIsAuthenticated(false);
                 setCurrentUser(null);
                 setAuthLoading(false);
@@ -241,7 +339,7 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (currentUser?.profileComplete) {
             if (currentUser.role === 'customer') {
                 setActivePage('customer-marketplace');
-            } else if (!isInitialLogin) { // Don't reset to dashboard if it's the initial login
+            } else if (!isInitialLogin) { 
                 setActivePage('dashboard');
             }
             setSelectedPortfolioUser(null);
@@ -255,7 +353,7 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [selectedPortfolioUser]);
 
-    // Auth functions
+    // #region Auth functions
     const login = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
     
     const signup = async (name: string, email: string, pass: string) => {
@@ -274,7 +372,6 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const logout = () => {
         if (currentUser?.id.startsWith('guest_')) {
-            // Manual state reset for guest users
             setIsAuthenticated(false);
             setCurrentUser(null);
             setFirebaseUser(null);
@@ -283,9 +380,7 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
             setFavorites([]);
             return;
         }
-
         signOut(auth).then(() => {
-            // onAuthStateChanged will handle state cleanup for real users
             setAuthPage('landing');
         });
     };
@@ -305,24 +400,56 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAuthPage('landing');
     };
 
+    const switchUserRole = (role: Role) => {
+        if (!currentUser) return;
+    
+        let targetUser: User | Artisan | Volunteer | null = null;
+        
+        const mockCustomer: User = {
+            id: 'customer_switched_1',
+            name: currentUser.name,
+            role: 'customer',
+            avatar: currentUser.avatar,
+            profileComplete: true,
+        };
+    
+        if (role === 'artisan') {
+            const targetArtisan = artisans.find(a => a.id !== currentUser.id) || artisans[0];
+            if (targetArtisan) {
+                targetUser = { ...targetArtisan, profileComplete: true };
+            }
+        } else if (role === 'volunteer') {
+            const targetVolunteer = volunteers.find(v => v.id !== currentUser.id) || volunteers[0];
+            if (targetVolunteer) {
+                targetUser = { ...targetVolunteer, profileComplete: true };
+            }
+        } else if (role === 'customer') {
+            targetUser = mockCustomer;
+        }
+    
+        if (targetUser) {
+            setSelectedProduct(null);
+            setSelectedPortfolioUser(null);
+            setCurrentUser(targetUser);
+        }
+    };
+
     const handleSetCurrentUser = async (newUser: any) => {
-        // This function's primary job now is to create the user profile document after role selection.
         if (typeof newUser === 'function') {
-             setCurrentUser(newUser); // Allow state function updates for guest etc.
+             setCurrentUser(newUser);
              return;
         }
 
         const userToSet = newUser as User;
 
         if (userToSet && userToSet.id.startsWith('guest_')) {
-             setCurrentUser(userToSet); // Guest user, just update state
+             setCurrentUser(userToSet);
              return;
         }
 
         if (userToSet && firebaseUser) {
             try {
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
-                // The `onSnapshot` listener will handle updating the `currentUser` state
                 await setDoc(userDocRef, { ...userToSet, id: firebaseUser.uid }, { merge: true });
             } catch (error) {
                 console.error("CRITICAL: Failed to create user profile in Firestore:", error);
@@ -348,20 +475,86 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
             await setDoc(userDocRef, { ...profileData, profileComplete: true }, { merge: true });
         }
     };
+    // #endregion
 
-    // Product function
-    const addProduct = async (productData: Omit<Product, 'id' | 'artisanId' | 'dateAdded' | 'certificateId'>) => {
+    // FIX: Added function to create a new certificate.
+    const addCertificate = async (certificate: Certificate) => {
         if (!currentUser || currentUser.role !== 'artisan') return;
-        const newProduct = {
+        try {
+            const certCollection = collection(db, 'certificates');
+            // We strip 'id' because Firestore generates it, but keep the data.
+            const { id, ...certData } = certificate;
+            await addDoc(certCollection, certData);
+        } catch (error) {
+            console.error("Error adding certificate:", error);
+            handleFirestoreError(error, 'certificates');
+        }
+    };
+
+    const getCertificate = async (certificateId: string): Promise<Certificate | null> => {
+        if (firestoreFailedRef.current) {
+            console.warn("Firestore connection failed. Cannot fetch individual certificate.");
+            return null; 
+        }
+        try {
+            const certRef = doc(db, 'certificates', certificateId);
+            const certSnap = await getDoc(certRef);
+            if (certSnap.exists()) {
+                return { id: certSnap.id, ...certSnap.data() } as Certificate;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching certificate:", error);
+            handleFirestoreError(error, 'certificates');
+            return null;
+        }
+    };
+
+    // FIX: Updated `addProduct` to handle certificate linking.
+    const addProduct = async (productData: Omit<Product, 'id' | 'artisanId' | 'dateAdded'>, certificateId?: string) => {
+        if (!currentUser || currentUser.role !== 'artisan') return;
+
+        const batch = writeBatch(db);
+        const newProductRef = doc(collection(db, "products"));
+
+        const newProductData: Omit<Product, 'id'> = {
             ...productData,
             artisanId: currentUser.id,
             dateAdded: new Date().toISOString(),
-            certificateId: `KH-${Math.floor(Math.random() * 900000) + 100000}`,
+            certificateId: certificateId || undefined,
         };
+        
+        batch.set(newProductRef, newProductData);
+        
+        if (certificateId) {
+            // Firestore doesn't allow adding a document with an ID that might not exist yet in a batch, so we have to assume the cert ID is correct.
+            // Also, we need to update the cert to link it to the *new* product ID.
+            const certRef = doc(db, 'certificates', certificateId);
+            batch.update(certRef, { assignedToProductId: newProductRef.id });
+        }
+
         try {
-            await addDoc(collection(db, "products"), newProduct);
+            await batch.commit();
         } catch (error) {
-            console.error("Error adding product: ", error);
+            console.error("Error adding product and updating certificate: ", error);
+            handleFirestoreError(error, 'products/certificates');
+        }
+    };
+
+    const postNewProject = async (projectData: { title: string; description: string; skillsNeeded: string[] }) => {
+        if (!currentUser || currentUser.role !== 'artisan') return;
+    
+        const newProject = {
+            ...projectData,
+            postedBy: currentUser.name,
+            status: 'Open',
+        };
+    
+        try {
+            await addDoc(collection(db, "projects"), newProject);
+        } catch (error) {
+            console.error("Error adding project: ", error);
+            handleFirestoreError(error, 'projects');
         }
     };
     
@@ -394,64 +587,467 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     const isFavorite = (productId: string) => favorites.includes(productId);
 
-    // Chat functions
-    const startChat = (userId: string) => {
-        setStartChatWith(userId);
-        if(currentUser?.role === 'customer') {
+    // #region Chat functions
+    useEffect(() => {
+        if (!currentUser?.id || currentUser.id.startsWith('guest_')) {
+            Object.keys(messageListenersRef.current).forEach(convId => messageListenersRef.current[convId]());
+            messageListenersRef.current = {};
+            setConversations([]);
+            return;
+        }
+        
+        const q = query(collection(db, 'conversations'), where('participantIds', 'array-contains', currentUser.id));
+
+        const unsubscribeConversations = onSnapshot(q, (snapshot) => {
+            const currentConversationIds = new Set<string>();
+            const conversationsFromFS = snapshot.docs.map(doc => {
+                currentConversationIds.add(doc.id);
+                return {
+                    id: doc.id,
+                    messages: [],
+                    ...doc.data()
+                } as Conversation;
+            });
+
+            setConversations(prevConvs => {
+                return conversationsFromFS.map(newConv => {
+                    const existingConv = prevConvs.find(p => p.id === newConv.id);
+                    return { ...newConv, messages: existingConv?.messages || [] };
+                });
+            });
+
+            Object.keys(messageListenersRef.current).forEach(convId => {
+                if (!currentConversationIds.has(convId)) {
+                    messageListenersRef.current[convId]();
+                    delete messageListenersRef.current[convId];
+                }
+            });
+
+            conversationsFromFS.forEach(conv => {
+                if (!messageListenersRef.current[conv.id]) {
+                    const messagesQuery = query(collection(db, `conversations/${conv.id}/messages`), orderBy('timestamp', 'asc'));
+                    const unsubMessages = onSnapshot(messagesQuery, (messagesSnapshot) => {
+                        const messages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+                        setConversations(prev => prev.map(p => p.id === conv.id ? { ...p, messages } : p));
+                    });
+                    messageListenersRef.current[conv.id] = unsubMessages;
+                }
+            });
+        }, (error) => handleFirestoreError(error, 'conversations'));
+
+        return () => {
+            unsubscribeConversations();
+            Object.keys(messageListenersRef.current).forEach(convId => messageListenersRef.current[convId]());
+            messageListenersRef.current = {};
+        };
+    }, [currentUser]);
+
+    const startChat = (participant: ParticipantDetails) => {
+        setStartChatWith(participant);
+        if (currentUser?.role === 'customer') {
             setActivePage('customer-chat');
         } else {
             setActivePage('chat');
         }
     };
+    
     const clearStartChat = () => setStartChatWith(null);
 
-    const createOrSelectConversation = (participantId: string): string => {
+    const createOrSelectConversation = async (otherParticipant: ParticipantDetails): Promise<string> => {
         if (!currentUser) return '';
-        const sortedIds = [currentUser.id, participantId].sort();
+        const sortedIds = [currentUser.id, otherParticipant.id].sort();
         const conversationId = sortedIds.join('-');
 
-        const existingConversation = conversations.find(c => c.id === conversationId);
-        if (existingConversation) {
-            return existingConversation.id;
+        const conversationRef = doc(db, 'conversations', conversationId);
+        const conversationSnap = await getDoc(conversationRef);
+
+        if (!conversationSnap.exists()) {
+            const newConversationData = {
+                participantIds: sortedIds,
+                participants: {
+                    [currentUser.id]: { name: currentUser.name, avatar: currentUser.avatar },
+                    [otherParticipant.id]: { name: otherParticipant.name, avatar: otherParticipant.avatar },
+                },
+            };
+            await setDoc(conversationRef, newConversationData);
         }
-
-        const allUsers: User[] = [...artisans, ...volunteers];
-        const participant = allUsers.find(u => u.id === participantId);
-
-        if (!participant) return '';
-
-        const newConversation: Conversation = {
-            id: conversationId,
-            participantIds: sortedIds,
-            participants: {
-                [currentUser.id]: { name: currentUser.name, avatar: currentUser.avatar },
-                [participantId]: { name: participant.name, avatar: participant.avatar },
-            },
-            messages: [],
-        };
-        setConversations(prev => [...prev, newConversation]);
-        return newConversation.id;
+        
+        return conversationId;
     };
 
-
-    const sendMessage = (conversationId: string, messageText: string) => {
+    const sendMessage = async (conversationId: string, messageText: string) => {
         if (!currentUser) return;
         
-        const newMessage: ChatMessage = {
-            id: Date.now(),
+        const conversationRef = doc(db, 'conversations', conversationId);
+        const messagesCollectionRef = collection(conversationRef, 'messages');
+
+        const newMessage = {
             senderId: currentUser.id,
             text: messageText,
-            timestamp: new Date().toISOString(),
+            timestamp: serverTimestamp(),
         };
 
-        setConversations(prev =>
-            prev.map(conv =>
-                conv.id === conversationId
-                    ? { ...conv, messages: [...conv.messages, newMessage] }
-                    : conv
-            )
-        );
+        const batch = writeBatch(db);
+        const newMessageRef = doc(messagesCollectionRef);
+        batch.set(newMessageRef, newMessage);
+
+        batch.update(conversationRef, {
+            lastMessage: {
+                text: messageText,
+                timestamp: serverTimestamp()
+            }
+        });
+
+        await batch.commit();
     };
+    // #endregion
+    
+    // #region Bargain functions
+    useEffect(() => {
+        if (!currentUser) {
+            setBargainRequests([]);
+            prevBargainRequestsRef.current = [];
+            return;
+        }
+
+        let q;
+        if (currentUser.role === 'customer') {
+            q = query(collection(db, 'bargainRequests'), where('customerId', '==', currentUser.id));
+        } else if (currentUser.role === 'artisan') {
+            q = query(collection(db, 'bargainRequests'), where('artisanId', '==', currentUser.id));
+        } else {
+            return; 
+        }
+        
+        const unsubscribe = onSnapshot(q, snapshot => {
+            const newRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BargainRequest));
+            
+            if (currentUser.role === 'customer') {
+                const oldRequests = prevBargainRequestsRef.current;
+                if (oldRequests.length > 0) { 
+                    newRequests.forEach(newReq => {
+                        const oldReq = oldRequests.find(o => o.id === newReq.id);
+                        if (oldReq && oldReq.status === 'pending' && newReq.status === 'accepted') {
+                            addNotification(`Offer accepted for "${newReq.productName}"!`, 'success', { text: 'View My Offers', action: () => setActivePage('customer-offers')});
+                        } else if (oldReq && oldReq.status === 'pending' && newReq.status === 'rejected') {
+                            addNotification(`Your offer for "${newReq.productName}" was not accepted.`, 'info');
+                        }
+                    });
+                }
+            }
+
+            setBargainRequests(newRequests);
+            prevBargainRequestsRef.current = newRequests;
+        }, (error) => handleFirestoreError(error, 'bargainRequests'));
+        
+        return () => {
+            unsubscribe();
+            prevBargainRequestsRef.current = [];
+        };
+    }, [currentUser]);
+
+    const createBargainRequest = async (product: Product, offerPrice: number) => {
+        if (!currentUser || currentUser.role !== 'customer') return;
+
+        const newRequest: Omit<BargainRequest, 'id'> = {
+            productId: product.id,
+            productName: product.name,
+            productImage: product.image,
+            customerId: currentUser.id,
+            customerName: currentUser.name,
+            artisanId: product.artisanId,
+            originalPrice: product.price,
+            offerPrice: offerPrice,
+            status: 'pending',
+            requestDate: serverTimestamp(),
+        };
+        await addDoc(collection(db, 'bargainRequests'), newRequest);
+    };
+
+    const updateBargainRequestStatus = async (requestId: string, status: 'accepted' | 'rejected') => {
+        const reqRef = doc(db, 'bargainRequests', requestId);
+        await updateDoc(reqRef, { status });
+    };
+
+    const completeBargainRequest = async (requestId: string) => {
+        const reqRef = doc(db, 'bargainRequests', requestId);
+        await updateDoc(reqRef, { status: 'completed' });
+    };
+    // #endregion
+
+    // #region Connection Request Functions
+    useEffect(() => {
+        if (!currentUser?.id || currentUser.id.startsWith('guest_')) {
+            setConnectionRequests([]);
+            prevConnectionRequestsRef.current = [];
+            return;
+        }
+
+        const receivedQuery = query(collection(db, 'connectionRequests'), where('receiverId', '==', currentUser.id));
+        const sentQuery = query(collection(db, 'connectionRequests'), where('senderId', '==', currentUser.id));
+
+        let receivedRequests: ConnectionRequest[] = [];
+        let sentRequests: ConnectionRequest[] = [];
+        
+        const combineAndSet = () => {
+            const all = [...receivedRequests, ...sentRequests];
+            const unique = Array.from(new Map(all.map(item => [item.id, item])).values());
+            
+            const oldRequests = prevConnectionRequestsRef.current;
+            if (oldRequests.length > 0 && currentUser) {
+                 unique.forEach(newReq => {
+                    const oldReq = oldRequests.find(o => o.id === newReq.id);
+                    // Notify receiver of new request
+                    if (!oldReq && newReq.receiverId === currentUser.id && newReq.status === 'pending') {
+                         addNotification(`${newReq.senderName} wants to connect.`, 'info', { text: 'View Requests', action: () => setActivePage(currentUser.role === 'customer' ? 'customer-offers' : 'dashboard') });
+                    }
+                    // Notify sender of status change
+                    if (oldReq && oldReq.status === 'pending' && newReq.senderId === currentUser.id) {
+                        const allAppUsers = [...artisans, ...volunteers];
+                        const receiverUser = allAppUsers.find(u => u.id === newReq.receiverId);
+                        const receiverName = receiverUser?.name || 'The user';
+
+                        const chatPage: Page = currentUser.role === 'customer' ? 'customer-chat' : 'chat';
+                        
+                        if (newReq.status === 'accepted') {
+                            addNotification(`${receiverName} accepted your connection request!`, 'success', { text: 'Go to Chat', action: () => setActivePage(chatPage) });
+                        } else if (newReq.status === 'rejected') {
+                            addNotification(`${receiverName} declined your connection request.`, 'info');
+                        }
+                    }
+                });
+            }
+            
+            setConnectionRequests(unique);
+            prevConnectionRequestsRef.current = unique;
+        };
+
+        const unsubReceived = onSnapshot(receivedQuery, snapshot => {
+            receivedRequests = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ConnectionRequest));
+            combineAndSet();
+        }, error => handleFirestoreError(error, 'connectionRequests (received)'));
+
+        const unsubSent = onSnapshot(sentQuery, snapshot => {
+            sentRequests = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ConnectionRequest));
+            combineAndSet();
+        }, error => handleFirestoreError(error, 'connectionRequests (sent)'));
+
+        return () => {
+            unsubReceived();
+            unsubSent();
+            prevConnectionRequestsRef.current = [];
+        };
+    }, [currentUser, artisans, volunteers]);
+
+    const sendConnectionRequest = async (receiver: User) => {
+        if (!currentUser) return;
+        
+        const newRequest: Omit<ConnectionRequest, 'id'> = {
+            senderId: currentUser.id,
+            receiverId: receiver.id,
+            senderName: currentUser.name,
+            senderAvatar: currentUser.avatar,
+            senderRole: currentUser.role,
+            status: 'pending',
+            timestamp: serverTimestamp()
+        };
+        await addDoc(collection(db, 'connectionRequests'), newRequest);
+    };
+
+    const respondToConnectionRequest = async (request: ConnectionRequest, response: 'accepted' | 'rejected') => {
+        if (!currentUser) return;
+        const requestRef = doc(db, 'connectionRequests', request.id);
+        await updateDoc(requestRef, { status: response });
+    
+        if (response === 'accepted') {
+            const otherParticipant: ParticipantDetails = {
+                id: request.senderId,
+                name: request.senderName,
+                avatar: request.senderAvatar
+            };
+            await createOrSelectConversation(otherParticipant);
+            const chatPage: Page = currentUser.role === 'customer' ? 'customer-chat' : 'chat';
+            addNotification(`You are now connected with ${request.senderName}.`, 'success', { text: 'Go to Chat', action: () => setActivePage(chatPage) });
+        }
+    };
+    // #endregion
+    
+     // #region Project Application & Collaboration Functions
+    useEffect(() => {
+        if (!currentUser?.id || firestoreFailedRef.current) {
+            setProjectApplications([]);
+            setCollaborations([]);
+            return;
+        };
+
+        let unsubApp: Unsubscribe;
+        let unsubCollab: Unsubscribe;
+
+        if (currentUser.role === 'artisan') {
+            const appQuery = query(collection(db, 'projectApplications'), where('artisanId', '==', currentUser.id));
+            unsubApp = onSnapshot(appQuery, snapshot => {
+                const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProjectApplication));
+                setProjectApplications(apps);
+            }, (error) => handleFirestoreError(error, 'projectApplications'));
+
+            const collabQuery = query(collection(db, 'collaborations'), where('artisanId', '==', currentUser.id));
+            unsubCollab = onSnapshot(collabQuery, snapshot => {
+                const collabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Collaboration));
+                setCollaborations(collabs);
+            }, (error) => handleFirestoreError(error, 'collaborations'));
+
+        } else if (currentUser.role === 'volunteer') {
+            const appQuery = query(collection(db, 'projectApplications'), where('volunteerId', '==', currentUser.id));
+            unsubApp = onSnapshot(appQuery, snapshot => {
+                const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProjectApplication));
+                setProjectApplications(apps);
+            }, (error) => handleFirestoreError(error, 'projectApplications'));
+            
+            const collabQuery = query(collection(db, 'collaborations'), where('volunteerId', '==', currentUser.id));
+            unsubCollab = onSnapshot(collabQuery, snapshot => {
+                const collabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Collaboration));
+                setCollaborations(collabs);
+            }, (error) => handleFirestoreError(error, 'collaborations'));
+        }
+
+        return () => {
+            unsubApp?.();
+            unsubCollab?.();
+        };
+
+    }, [currentUser]);
+
+    const applyForProject = async (project: Project) => {
+        if (!currentUser || currentUser.role !== 'volunteer') return;
+        const artisan = artisans.find(a => a.name === project.postedBy);
+        if (!artisan) return;
+        
+        const newApplication: Omit<ProjectApplication, 'id'> = {
+            projectId: project.id,
+            volunteerId: currentUser.id,
+            artisanId: artisan.id,
+            status: 'pending',
+            applicationDate: new Date().toISOString(),
+        };
+
+        await addDoc(collection(db, 'projectApplications'), newApplication);
+        addNotification(`Application sent for "${project.title}"!`, 'success');
+    };
+
+    const respondToApplication = async (application: ProjectApplication, response: 'accepted' | 'declined') => {
+        if (!currentUser || currentUser.role !== 'artisan') return;
+
+        const batch = writeBatch(db);
+        const appRef = doc(db, 'projectApplications', application.id);
+        batch.update(appRef, { status: response });
+
+        if (response === 'accepted') {
+            const volunteer = volunteers.find(v => v.id === application.volunteerId);
+            if (!volunteer) throw new Error("Volunteer not found");
+            
+            const collabRef = doc(collection(db, 'collaborations'));
+            batch.set(collabRef, {
+                projectId: application.projectId,
+                volunteerId: application.volunteerId,
+                artisanId: currentUser.id,
+                startDate: new Date().toISOString(),
+                status: 'in-progress'
+            } as Omit<Collaboration, 'id'>);
+
+            const projectRef = doc(db, 'projects', application.projectId);
+            batch.update(projectRef, { status: 'In Progress' });
+            
+            const otherAppsQuery = query(collection(db, 'projectApplications'), where('projectId', '==', application.projectId), where('status', '==', 'pending'));
+            const otherAppsSnapshot = await getDocs(otherAppsQuery);
+            otherAppsSnapshot.docs.forEach(doc => {
+                if (doc.id !== application.id) {
+                    batch.update(doc.ref, { status: 'declined' });
+                }
+            });
+            
+            addNotification(`You have accepted ${volunteer.name}'s application.`, 'success');
+
+        } else {
+             addNotification(`Application for ${volunteers.find(v => v.id === application.volunteerId)?.name} declined.`, 'info');
+        }
+
+        await batch.commit();
+    };
+
+    const endCollaboration = async (collaboration: Collaboration, feedback: string, rating: number) => {
+        if (!currentUser || currentUser.role !== 'artisan') return;
+    
+        const volunteer = volunteers.find(v => v.id === collaboration.volunteerId);
+        if (!volunteer) return;
+    
+        const batch = writeBatch(db);
+        const collabRef = doc(db, 'collaborations', collaboration.id);
+        batch.update(collabRef, { status: 'completed', endDate: new Date().toISOString(), feedback, rating });
+        
+        const projectRef = doc(db, 'projects', collaboration.projectId);
+        batch.update(projectRef, { status: 'Completed' });
+        
+        if (feedback.trim()) {
+            const volunteerRef = doc(db, 'users', volunteer.id);
+            const volunteerDoc = await getDoc(volunteerRef);
+            const volunteerData = volunteerDoc.data() as Volunteer;
+            
+            batch.update(volunteerRef, {
+                testimonials: [...(volunteerData.testimonials || []), { quote: feedback, artisanName: currentUser.name, artisanAvatar: currentUser.avatar }]
+            });
+        }
+        
+        await batch.commit();
+        addNotification(`Collaboration with ${volunteer.name} ended.`, 'success');
+    };
+
+    const issueCertificate = async (collaboration: Collaboration) => {
+        if (!currentUser || currentUser.role !== 'artisan') return;
+
+        const volunteer = volunteers.find(v => v.id === collaboration.volunteerId);
+        const project = projects.find(p => p.id === collaboration.projectId);
+
+        if (!volunteer || !project) {
+            addNotification('Could not find volunteer or project details.', 'error');
+            return;
+        }
+
+        if (volunteer.completedProjects?.some(p => p.id === collaboration.id)) {
+            addNotification('A certificate has already been issued for this project.', 'info');
+            return;
+        }
+
+        try {
+            const certificateText = await generateCertificateText(currentUser.name, volunteer.name, project.title, 40, project.skillsNeeded, language);
+
+            const newCompletedProject: CompletedProject = {
+                id: collaboration.id,
+                projectName: project.title,
+                artisanName: currentUser.name,
+                artisanAvatar: currentUser.avatar,
+                certificateText,
+                skills: project.skillsNeeded,
+                issuedDate: new Date().toISOString(),
+            };
+
+            const volunteerRef = doc(db, 'users', volunteer.id);
+            const volunteerDoc = await getDoc(volunteerRef);
+            const volunteerData = volunteerDoc.data() as Volunteer;
+
+            await updateDoc(volunteerRef, {
+                projectsCompleted: (volunteerData.projectsCompleted || 0) + 1,
+                completedProjects: [...(volunteerData.completedProjects || []), newCompletedProject],
+            });
+            
+            addNotification(`Certificate issued to ${volunteer.name}!`, 'success');
+
+        } catch (error) {
+            console.error("Error issuing certificate:", error);
+            addNotification('Failed to generate or issue certificate.', 'error');
+        }
+    };
+    // #endregion
+
 
     const value: AppContextType = {
         currentUser,
@@ -465,6 +1061,7 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
         setLanguage,
         projects,
         setProjects,
+        postNewProject,
         volunteers,
         setVolunteers,
         artisans,
@@ -498,9 +1095,29 @@ const AppProviderContent: React.FC<{ children: ReactNode }> = ({ children }) => 
         bypassLogin,
         authPage,
         setAuthPage,
+        switchUserRole,
         clearStartChat,
         t,
         firestoreError,
+        bargainRequests,
+        createBargainRequest,
+        updateBargainRequestStatus,
+        completeBargainRequest,
+        connectionRequests,
+        sendConnectionRequest,
+        respondToConnectionRequest,
+        projectApplications,
+        collaborations,
+        applyForProject,
+        respondToApplication,
+        endCollaboration,
+        issueCertificate,
+        // FIX: Added missing properties to the context value.
+        addCertificate,
+        certificates,
+        getCertificate,
+        notifications,
+        removeNotification,
     };
     
     return (

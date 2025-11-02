@@ -15,7 +15,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, theme, toggleTheme, language, setLanguage }) => {
   const { t } = useLocalization();
-  const { currentUser, logout, setSelectedPortfolioUser, artisans, volunteers } = useContext(AppContext)!;
+  // FIX: Destructured selectedPortfolioUser from context to make it available in the component scope.
+  const { currentUser, logout, selectedPortfolioUser, setSelectedPortfolioUser, artisans, volunteers } = useContext(AppContext)!;
   
   const allNavItems: { id: Page; title: string; icon: React.ReactElement; roles: ('artisan' | 'volunteer')[] }[] = [
     { id: 'dashboard', title: t('sidebar.dashboard'), icon: <NavIcon type="dashboard" />, roles: ['artisan', 'volunteer'] },
@@ -52,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, theme, tog
 
   return (
     <aside className="w-64 bg-white dark:bg-slate-800 shadow-lg flex-col hidden sm:flex">
-      <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center space-x-3">
+      <div onClick={logout} className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center space-x-3 cursor-pointer">
         <LogoIcon />
         <h1 className="text-2xl font-bold text-teal-600">Artisan Ally</h1>
       </div>
@@ -64,14 +65,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, theme, tog
             onClick={(e) => {
               e.preventDefault();
               setActivePage(item.id);
+              setSelectedPortfolioUser(null);
             }}
             className={`relative flex items-center px-4 py-3 rounded-lg transition-all duration-200 group ${
-              activePage === item.id
+              activePage === item.id && !selectedPortfolioUser
                 ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
-            {activePage === item.id && <span className="absolute left-0 top-2 bottom-2 w-1 bg-teal-600 rounded-r-full"></span>}
+            {activePage === item.id && !selectedPortfolioUser && <span className="absolute left-0 top-2 bottom-2 w-1 bg-teal-600 rounded-r-full"></span>}
             {item.icon}
             <span className="ml-4">{item.title}</span>
           </a>
@@ -79,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, theme, tog
       </nav>
       <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
          <div className="flex items-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer" onClick={handleViewProfile}>
-            <img src={currentUser?.avatar} alt="User" className="w-10 h-10 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-800 ring-teal-500" />
+            <img src={currentUser?.avatar} alt="User" className="w-10 h-10 rounded-full object-cover ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-800 ring-teal-500" />
             <div className="ml-3">
                 <p className="font-semibold text-slate-800 dark:text-slate-200">{currentUser?.name}</p>
                 <p className="text-sm text-slate-500 dark:text-slate-400 capitalize">{t(`roles.${currentUser?.role}`)}</p>

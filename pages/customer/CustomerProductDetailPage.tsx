@@ -1,10 +1,10 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { AppContext } from '../../contexts/AppContext';
-import type { Product, Artisan } from '../../types';
+import type { Product, Artisan, Certificate } from '../../types';
 import Button from '../../components/common/Button';
 import Card, { CardContent, CardHeader, CardTitle } from '../../components/common/Card';
 import { useLocalization } from '../../hooks/useLocalization';
-import DigitalCertificate, { type CertificateData } from '../../components/common/DigitalCertificate';
+import DigitalCertificate from '../../components/common/DigitalCertificate';
 import { editImageWithAI } from '../../services/geminiService';
 
 interface Props {
@@ -14,13 +14,32 @@ interface Props {
 
 const CustomerProductDetailPage: React.FC<Props> = ({ product, artisan }) => {
     const { t } = useLocalization();
-    const { setSelectedProduct, addToCart, toggleFavorite, isFavorite, startChat, setActivePage, setSelectedPortfolioUser } = useContext(AppContext)!;
+    const { 
+        setSelectedProduct, 
+        toggleFavorite, 
+        isFavorite, 
+        startChat, 
+        setSelectedPortfolioUser,
+        createBargainRequest,
+        bargainRequests,
+        currentUser,
+        connectionRequests,
+        sendConnectionRequest,
+        setActivePage,
+        getCertificate,
+    } = useContext(AppContext)!;
 
     const minOffer = Math.round(product.price * 0.7);
     const [offerPrice, setOfferPrice] = useState(product.price);
-    const [isAdded, setIsAdded] = useState(false);
+    const [offerSent, setOfferSent] = useState(false);
     const [showCertificate, setShowCertificate] = useState(false);
+    const [fetchedCertificateData, setFetchedCertificateData] = useState<Certificate | null>(null);
+
     const favorite = isFavorite(product.id);
+    
+    const existingOffer = useMemo(() => {
+        return bargainRequests.find(req => req.productId === product.id && req.customerId === currentUser?.id && (req.status === 'pending' || req.status === 'accepted'));
+    }, [bargainRequests, product.id, currentUser?.id]);
 
     // AI Stylist State
     const [isStylistOpen, setIsStylistOpen] = useState(false);
@@ -30,29 +49,35 @@ const CustomerProductDetailPage: React.FC<Props> = ({ product, artisan }) => {
     
     useEffect(() => {
         setOfferPrice(product.price); // Reset price when product changes
-        setIsAdded(false);
+        setOfferSent(false);
     }, [product]);
 
-    const handleAddToCart = () => {
-        addToCart(product, offerPrice);
-        setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 2000); // Reset after 2s
+    const handleMakeOffer = async () => {
+        await createBargainRequest(product, offerPrice);
+        setOfferSent(true);
     };
     
     const handleMessageArtisan = () => {
         if (!artisan) return;
-        startChat(artisan.id);
-        setActivePage('customer-chat');
+        startChat({ id: artisan.id, name: artisan.name, avatar: artisan.avatar });
     };
 
-    const certificateData: CertificateData | null = artisan ? {
-        id: product.certificateId,
-        artworkName: product.name,
-        artistName: artisan.name,
-        craftTradition: product.craftTradition,
-        certifiedDate: new Date(product.dateAdded),
-        heritageStory: product.longDescription, // Using long description as a stand-in for heritage story
-    } : null;
+    const handleViewCertificate = async () => {
+        if (product.certificateId) {
+            const cert = await getCertificate(product.certificateId);
+            if (cert) {
+                // Convert Firestore Timestamp to Date if it's not already
+                const certWithDate = {
+                    ...cert,
+                    certifiedDate: cert.certifiedDate?.toDate ? cert.certifiedDate.toDate() : new Date(cert.certifiedDate),
+                };
+                setFetchedCertificateData(certWithDate);
+                setShowCertificate(true);
+            } else {
+                alert("Certificate details could not be found.");
+            }
+        }
+    };
 
     // Helper function to convert image URL to Base64
     const imageUrlToBase64 = async (url: string): Promise<{b64: string, mime: string}> => {
@@ -112,6 +137,28 @@ const CustomerProductDetailPage: React.FC<Props> = ({ product, artisan }) => {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
       </svg>
     );
+
+    const ConnectButton: React.FC = () => {
+        if (!artisan || !currentUser || artisan.id === currentUser.id) return null;
+    
+        const existingRequest = connectionRequests.find(
+            req => (req.senderId === currentUser.id && req.receiverId === artisan.id) || (req.senderId === artisan.id && req.receiverId === currentUser.id)
+        );
+    
+        if (existingRequest) {
+            if (existingRequest.status === 'accepted') {
+                return <Button variant="ghost" onClick={handleMessageArtisan} className="flex-1">{t('profile.message')}</Button>;
+            }
+            if (existingRequest.status === 'pending') {
+                 if(existingRequest.senderId === currentUser.id) {
+                    return <Button variant="ghost" disabled className="flex-1">{t('profile.requestSent')}</Button>;
+                 }
+                 return <Button variant="ghost" onClick={() => setActivePage('customer-offers')} className="flex-1">{t('profile.respondToRequest')}</Button>;
+            }
+        }
+    
+        return <Button variant="ghost" onClick={() => sendConnectionRequest(artisan)} className="flex-1">{t('profile.connect')}</Button>;
+    };
 
     const AIStylistModal: React.FC = () => (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -216,6 +263,7 @@ const CustomerProductDetailPage: React.FC<Props> = ({ product, artisan }) => {
                                         value={offerPrice}
                                         onChange={(e) => setOfferPrice(Number(e.target.value))}
                                         className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer range-lg accent-teal-500 mt-2"
+                                        disabled={!!existingOffer || offerSent}
                                     />
                                 </div>
                             </div>
@@ -230,8 +278,8 @@ const CustomerProductDetailPage: React.FC<Props> = ({ product, artisan }) => {
                                   {t('customer.product.aiStylist.button')}
                                 </Button>
                                 <div className="flex items-center space-x-4">
-                                  <Button onClick={handleAddToCart} className="flex-1 text-lg" disabled={isAdded}>
-                                      {isAdded ? t('customer.product.addedToCart') : t('customer.product.addToCart')}
+                                  <Button onClick={handleMakeOffer} className="flex-1 text-lg" disabled={!!existingOffer || offerSent}>
+                                      {existingOffer ? 'Offer Pending' : (offerSent ? 'Offer Sent!' : 'Make Offer')}
                                   </Button>
                                   <Button variant="secondary" onClick={() => toggleFavorite(product.id)} className="p-4">
                                       <svg className={`w-6 h-6 ${favorite ? 'text-red-500' : 'text-slate-500'}`} fill={favorite ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -260,27 +308,27 @@ const CustomerProductDetailPage: React.FC<Props> = ({ product, artisan }) => {
                                 <Button variant="secondary" onClick={() => setSelectedPortfolioUser(artisan)} className="flex-1">
                                     {t('dashboard.viewProfile')}
                                 </Button>
-                                <Button variant="ghost" onClick={handleMessageArtisan} className="flex-1">
-                                    {t('customer.product.messageArtisan')}
-                                </Button>
+                                <ConnectButton />
                             </div>
                         </Card>
                     )}
-
-                    <Card>
-                        <CardHeader><CardTitle>{t('customer.product.authenticity')}</CardTitle></CardHeader>
-                        <CardContent className="text-center">
-                           <p className="text-slate-600 dark:text-slate-300 mb-4">This item includes a digital certificate of authenticity to verify its origin and craftsmanship.</p>
-                           <Button variant="secondary" onClick={() => setShowCertificate(true)}>{t('customer.product.viewCertificate')}</Button>
-                        </CardContent>
-                    </Card>
+                    
+                    {product.certificateId && (
+                        <Card>
+                            <CardHeader><CardTitle>{t('customer.product.authenticity')}</CardTitle></CardHeader>
+                            <CardContent className="text-center">
+                            <p className="text-slate-600 dark:text-slate-300 mb-4">This item includes a digital certificate of authenticity to verify its origin and craftsmanship.</p>
+                            <Button variant="secondary" onClick={handleViewCertificate}>{t('customer.product.viewCertificate')}</Button>
+                            </CardContent>
+                        </Card>
+                    )}
 
                 </div>
             </div>
              <style>{`.animate-fade-in { animation: fade-in 0.5s ease-out forwards; } @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }`}</style>
         </div>
-        {showCertificate && certificateData && (
-            <DigitalCertificate data={certificateData} onClose={() => setShowCertificate(false)} />
+        {showCertificate && fetchedCertificateData && (
+            <DigitalCertificate data={fetchedCertificateData} onClose={() => { setShowCertificate(false); setFetchedCertificateData(null); }} />
         )}
         {isStylistOpen && <AIStylistModal />}
         </>
