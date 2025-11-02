@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/google/aistudio/main/apps/demos/artisan-ally/artisan-ally-logo.png" alt="Artisan Ally Logo" width="120">
-</p>
-
 <h1 align="center">Artisan Ally: An AI-Powered Empowerment Platform</h1>
 
 <p align="center">
