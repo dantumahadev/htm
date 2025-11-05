@@ -5,6 +5,12 @@
 </p>
 
 <p align="center">
+  <a href="https://final-artisan-ally-97173971420.us-west1.run.app/" target="_blank"><img alt="Deployed Website" src="https://img.shields.io/badge/Live%20Demo-Web%20App-blue?style=for-the-badge" /></a>
+  <a href="https://www.youtube.com/watch?v=1DwCQO4Lo4E" target="_blank"><img alt="YouTube Demo" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=youtube&logoColor=white&style=for-the-badge" /></a>
+  <!-- Add Figma/Prototype link below if desired, use same badge style -->
+</p>
+
+<p align="center">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"/>
   <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white"/>
   <img alt="Firebase" src="https://img.shields.io/badge/Firebase-10-FFCA28?logo=firebase&logoColor=black"/>
@@ -17,16 +23,25 @@
   <a href="#-technology-stack--architecture">Tech Stack</a> •
   <a href="#-getting-started">Getting Started</a> •
   <a href="#-future-roadmap">Future Roadmap</a> •
+  <a href="#-app-gallery">App Gallery</a> •
   <a href="#-contributing">Contributing</a>
 </p>
 
 ---
 
+## 🔗 Prototype & Demo
+
+- **Live Website:** [final-artisan-ally-97173971420.us-west1.run.app](https://final-artisan-ally-97173971420.us-west1.run.app/)
+- **YouTube Demo:** [Watch the walkthrough video](https://www.youtube.com/watch?v=1DwCQO4Lo4E)
+- <!-- Optionally add: **[Figma Prototype](https://your-prototype-link.com)** -->
+
+---
+
 ## 🌟 The Vision
 
-Artisan Ally is more than just a marketplace; it's a complete digital ecosystem designed to bridge the gap between traditional craftsmanship and the global digital economy. We recognize that local artisans possess immense talent and cultural heritage but often face significant barriers: limited market access, a lack of digital marketing skills, financial constraints, and the risk of intellectual property theft.
+Artisan Ally is more than just a marketplace; it's a complete digital ecosystem designed to bridge the gap between traditional craftsmanship and the global digital economy. We recognize that local artisans face unique barriers: limited access to online tools, intellectual property protection, and promotional resources.
 
-Our mission is to dismantle these barriers. By leveraging the power of Google's Gemini AI, Artisan Ally provides a suite of intelligent tools that act as a personal co-pilot for artisans, simplifying every step from product photography to global sales. Simultaneously, we cultivate a vibrant community by connecting these artisans with skilled volunteers and conscious consumers, fostering a collaborative environment where craft, culture, and opportunity converge.
+Our mission is to dismantle these barriers. By leveraging the power of Google's Gemini AI, Artisan Ally provides a suite of intelligent tools that act as a personal co-pilot for artisans, simplifying complex tasks and amplifying their reach.
 
 ## ✨ Key Features
 
@@ -78,70 +93,45 @@ Artisan Ally is designed for three key groups who form our collaborative ecosyst
 
 This project is built with a modern, scalable, and AI-first technology stack, chosen for its rapid development capabilities and powerful features.
 
-| Category      | Technology                                                                                                    | Why We Chose It                                                                                                                                                                                                                                                                                       |
-| :------------ | :------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend**  | [React](https://reactjs.org/) (v19) with [TypeScript](https://www.typescriptlang.org/) & [Tailwind CSS](https://tailwindcss.com/) | For building a fast, modern, and maintainable component-based UI. TypeScript ensures type safety and scalability, while Tailwind CSS allows for rapid, utility-first styling.                                                                                                   |
-| **Backend**   | [Firebase](https://firebase.google.com/) (Firestore, Auth)                                                      | Provides a serverless, real-time NoSQL database (Firestore) perfect for features like live chat and notifications, along with a secure and easy-to-use authentication system. It allows us to focus on frontend features while Firebase handles backend complexity.               |
-| **AI/ML**     | [Google Gemini API](https://ai.google.dev/gemini-api)                                                         | The core of our intelligent features. We use a suite of Gemini models for their powerful multimodal capabilities, including text generation, image understanding, image editing, video generation, and grounded generation with Google Search for real-time data. |
-| **State**     | React Context API                                                                                             | For centralized and simplified global state management (`AppContext.tsx`), providing a single source of truth for user data, application state, and core functionalities, eliminating prop-drilling and enhancing code readability.                                         |
+| Category      | Technology                                                                                                   | Why We Chose It                                                       |
+| :------------ | :----------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| **Frontend**  | [React](https://reactjs.org/) (v19) with [TypeScript](https://www.typescriptlang.org/) & [Tailwind CSS](https://tailwindcss.com/) | For building a fast, modern, and maintainable component-based UI       |
+| **Backend**   | [Firebase](https://firebase.google.com/) (Firestore, Auth)                                                     | Provides a serverless, real-time NoSQL database (Firestore) perfect for dynamic, scalable apps |
+| **AI/ML**     | [Google Gemini API](https://ai.google.dev/gemini-api)                                                        | The core of our intelligent features. We use a suite of Gemini models for multimodal input/output |
+| **State**     | React Context API                                                                                            | For centralized and simplified global state management (`AppContext.tsx`) |
 
 ## 🚀 Future Roadmap
 
 We are just getting started! Our roadmap includes integrating more advanced technologies to further empower our users:
 
 -   **🗣️ Real-Time Voice Negotiation**: Integrate **Gemini Live API** to enable real-time, voice-to-voice chat and bargaining between customers and artisans, with instant translation capabilities.
--   **🧠 Personalized Recommendation Engine**: Implement a recommendation system using embeddings or advanced AI to suggest products to customers, and potential volunteer-artisan pairings based on skills and needs.
--   **🌐 Advanced Web3 Integration**: Move beyond simple digital certificates to a fully decentralized system using NFTs on an eco-friendly blockchain to give artisans true ownership and royalty rights on secondary sales.
--   **📈 Artisan Analytics Dashboard**: Provide artisans with an AI-powered analytics dashboard that offers insights into sales trends, customer demographics, and marketing effectiveness, with actionable suggestions for growth.
+-   **🧠 Personalized Recommendation Engine**: Implement a recommendation system using embeddings or advanced AI to suggest products to customers, and potential volunteer-artisan pairings based on skills/interests.
+-   **🌐 Advanced Web3 Integration**: Move beyond simple digital certificates to a fully decentralized system using NFTs on an eco-friendly blockchain to give artisans true ownership and royalty rights.
+-   **📈 Artisan Analytics Dashboard**: Provide artisans with an AI-powered analytics dashboard that offers insights into sales trends, customer demographics, and marketing effectiveness, with actionable guidance.
 -   **📦 AI-Powered Logistics**: Integrate AI to help artisans calculate shipping costs, find the most efficient carriers, and generate shipping labels, simplifying a major operational hurdle.
 
-## ⚡ Getting Started
+---
 
-To get a local copy up and running, follow these simple steps.
+## 🖼️ App Gallery
 
-### Prerequisites
+Below are screenshots from the live application, showcasing key features and user interfaces. For a full experience, visit the [deployed website](https://final-artisan-ally-97173971420.us-west1.run.app).
 
--   [Node.js](https://nodejs.org/) (v18 or later recommended)
--   `npm` or `yarn` package manager
+<div align="center">
 
-### Installation & Setup
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/aa_landingPage.jpg" alt="Landing Page" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Artisan_Dashboard.jpg" alt="Artisan Dashboard" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Artisan_Video_generation.jpg" alt="Artisan Video Generation" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Photo_Studio.jpg" alt="Photo Studio" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Customer_Dashboard.jpg" alt="Customer Dashboard" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/MarketPlace.jpg" alt="Marketplace" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/ProductDescription.jpg" alt="Product Description" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Training_section.jpg" alt="Training Section" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Volunteer_Dashboard.jpg" alt="Volunteer Dashboard" width="330" style="margin:8px;" />
+<img src="https://github.com/Hassan010103/ArtisanAlly-Upgraded/raw/main/images/Volunteer_Hub.jpg" alt="Volunteer Hub" width="330" style="margin:8px;" />
 
-1.  **Clone the Repository**
-    ```sh
-    git clone https://github.com/google/aistudio.git
-    cd apps/demos/artisan-ally
-    ```
+</div>
 
-2.  **Install Dependencies**
-    ```sh
-    npm install
-    ```
-
-3.  **Set up Firebase**
-    -   Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
-    -   In your project dashboard, go to **Build > Firestore Database**, create a database, and select a location.
-    -   Inside Firestore, create a new database with the ID `ananyaa`.
-    -   Go to **Build > Authentication**, click "Get started", and enable the **Email/Password** and **Google** sign-in providers.
-    -   Navigate to **Project Settings** (click the gear icon ⚙️) > **General** tab.
-    -   Under "Your apps", create a new Web App.
-    -   Copy the `firebaseConfig` object and paste it into `src/firebaseConfig.ts`.
-
-4.  **Set up Google Gemini API Key**
-    -   Obtain an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-    -   Create a new file named `.env` in the root of the project (`/artisan-ally`).
-    -   Add your API key to the `.env` file:
-        ```env
-        API_KEY=YOUR_GEMINI_API_KEY
-        ```
-    > **Important**: For video generation features (`Veo`), the Google Cloud project associated with your API key must have **Billing enabled** and the **Vertex AI API** enabled.
-
-5.  **Run the Development Server**
-    This project is designed to run in development environments like AI Studio. If you're using a standard local setup with Vite or Create React App, you would run:
-    ```sh
-    npm start
-    ```
-
-The application should now be running on your local server!
+---
 
 ## 📁 Project Structure
 
