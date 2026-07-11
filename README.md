@@ -1,23 +1,6 @@
 <h1 align="center">Artisan Ally: An AI-Powered Empowerment Platform</h1>
 
 <p align="center">
-  <strong>An all-in-one platform to empower local artisans by enhancing their digital presence, providing financial tools, connecting them with volunteers, and protecting their craft's intellectual property.</strong>
-</p>
-
-<p align="center">
-  <a href="https://final-artisan-ally-97173971420.us-west1.run.app/" target="_blank"><img alt="Deployed Website" src="https://img.shields.io/badge/Live%20Demo-Web%20App-blue?style=for-the-badge" /></a>
-  <a href="https://www.youtube.com/watch?v=1DwCQO4Lo4E" target="_blank"><img alt="YouTube Demo" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=youtube&logoColor=white&style=for-the-badge" /></a>
-  <!-- Add Figma/Prototype link below if desired, use same badge style -->
-</p>
-
-<p align="center">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"/>
-  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white"/>
-  <img alt="Firebase" src="https://img.shields.io/badge/Firebase-10-FFCA28?logo=firebase&logoColor=black"/>
-  <img alt="Gemini API" src="https://img.shields.io/badge/Gemini_API-v1-4285F4?logo=google&logoColor=white"/>
-</p>
-
-<p align="center">
   <a href="#-the-vision">The Vision</a> •
   <a href="#-key-features">Key Features</a> •
   <a href="#-technology-stack--architecture">Tech Stack</a> •
@@ -26,14 +9,6 @@
   <a href="#-app-gallery">App Gallery</a> •
   <a href="#-contributing">Contributing</a>
 </p>
-
----
-
-## 🔗 Prototype & Demo
-
-- **Live Website:** [final-artisan-ally-97173971420.us-west1.run.app](https://final-artisan-ally-97173971420.us-west1.run.app/)
-- **YouTube Demo:** [Watch the walkthrough video](https://www.youtube.com/watch?v=1DwCQO4Lo4E)
-- <!-- Optionally add: **[Figma Prototype](https://your-prototype-link.com)** -->
 
 ---
 
@@ -149,6 +124,3 @@ Contributions are what make the open-source community such an amazing place to l
 
 Please read our `CONTRIBUTING.md` for details on our code of conduct and the process for submitting pull requests.
 
-## 📄 License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more information.
