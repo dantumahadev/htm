@@ -459,44 +459,22 @@ export const editImageWithAI = async (
     mimeType: string,
     prompt: string
 ): Promise<Part[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY!.trim() });
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-                parts: [
-                    { inlineData: { data: base64ImageData, mimeType: mimeType } },
-                    { text: prompt },
-                ],
-            },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            },
+        const res = await fetch('/api/vertex/edit-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64ImageData, mimeType, prompt })
         });
-        if (!response.candidates || response.candidates.length === 0) {
-            throw new Error("No candidates returned from AI.");
-        }
-        return response.candidates[0].content.parts;
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to edit image");
+        return data.parts;
     } catch (error: any) {
-        console.error("Error editing image:", error);
-        const errorMessage = String(error.message || error);
-        if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('quota')) {
-            throw new Error("QUOTA_EXCEEDED");
-        }
-        if (errorMessage.includes('API key not valid') || errorMessage.includes('not found')) {
-            throw new Error("API key not valid. Please pass a valid API key.");
-        }
-        throw new Error("Sorry, I couldn't edit the image right now.");
+        console.error("Error editing image via Vertex Proxy:", error);
+        throw new Error("Sorry, I couldn't edit the image right now: " + error.message);
     }
 };
 
 export const generateVideoFromStory = async (story: string, lang: 'en' | 'hi' | 'bn' | 'ta' | 'mr'): Promise<Operation<GenerateVideosResponse>> => {
-    const apiKey = process.env.API_KEY?.trim();
-    if (!apiKey) {
-        console.error("API_KEY environment variable not set for video generation.");
-        throw new Error("API_KEY_ERROR");
-    }
-    const ai = new GoogleGenAI({ apiKey });
     const prompts = {
         en: `Generate a short, visually engaging promotional video based on this story: "${story}"`,
         hi: `इस कहानी के आधार पर एक छोटा, दृश्यात्मक रूप से आकर्षक प्रचार वीडियो बनाएं: "${story}"`,
@@ -506,84 +484,58 @@ export const generateVideoFromStory = async (story: string, lang: 'en' | 'hi' | 
     };
     
     try {
-        let operation = await ai.models.generateVideos({
-            model: 'veo-3.1-fast-generate-preview',
-            prompt: prompts[lang],
-            config: {
-                numberOfVideos: 1,
-                resolution: '720p',
-                aspectRatio: '16:9'
-            }
+        const res = await fetch('/api/vertex/generate-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompts[lang] })
         });
-        return operation;
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to start video generation");
+        return data.operation;
     } catch (error: any) {
          console.error("Error starting video generation:", error);
-         const errorMessage = String(error.message || error);
-        if (errorMessage.includes('API key') || errorMessage.includes('not found') || errorMessage.includes('permission') || errorMessage.includes('Requested entity was not found')) {
-             throw new Error("API_KEY_ERROR");
-        }
-        throw new Error("Could not start video generation process.");
+         throw new Error("Could not start video generation process: " + error.message);
     }
 };
 
 export const getVideoGenerationStatus = async (operation: Operation<GenerateVideosResponse>): Promise<Operation<GenerateVideosResponse>> => {
-    const apiKey = process.env.API_KEY?.trim();
-    if (!apiKey) {
-        console.error("API_KEY environment variable not set for polling video status.");
-        throw new Error("API_KEY_ERROR");
-    }
-    const ai = new GoogleGenAI({ apiKey });
     try {
-        const updatedOperation = await ai.operations.getVideosOperation({ operation: operation });
-        return updatedOperation;
+        const res = await fetch('/api/vertex/video-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ operation })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to get video status");
+        return data.operation;
     } catch (error: any) {
         console.error("Error polling video status:", error);
-        const errorMessage = String(error.message || error);
-        if (errorMessage.includes('API key') || errorMessage.includes('not found') || errorMessage.includes('Requested entity was not found')) {
-             throw new Error("API_KEY_ERROR");
-        }
-        throw new Error("Could not get video generation status.");
+        throw new Error("Could not get video generation status: " + error.message);
     }
 };
 
 export const downloadVideo = async (downloadLink: string): Promise<string> => {
-    const apiKey = process.env.API_KEY?.trim();
-    if (!apiKey) {
-        console.error("API_KEY environment variable not set for downloading video.");
-        throw new Error("API_KEY_ERROR");
+    if (downloadLink.startsWith('data:') || downloadLink.startsWith('blob:')) {
+        return downloadLink;
     }
-
-    // Robustly append the API key, handling cases where the URL may or may not have existing query parameters.
-    const separator = downloadLink.includes('?') ? '&' : '?';
-    const urlWithKey = `${downloadLink}${separator}key=${apiKey}`;
-
     try {
-        const response = await fetch(urlWithKey);
-        if (!response.ok) {
-            console.error(`Error response from video download: ${response.status} ${response.statusText}`);
-            let errorBody = "Could not read error body.";
-            try {
-                errorBody = await response.text();
-                console.error("Error body from API:", errorBody);
-            } catch (e) {
-                console.error("Failed to parse error body.");
-            }
-            
-            // Treat 400 as a configuration error to guide the user.
-            if (response.status === 400) {
-                 throw new Error("API_KEY_ERROR");
-            }
-            throw new Error(`Failed to download video. Server responded with status: ${response.status}.`);
+        const res = await fetch('/api/vertex/fetch-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uri: downloadLink })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to fetch video");
+        const byteCharacters = atob(data.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
-        const blob = await response.blob();
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: data.mimeType || 'video/mp4' });
         return URL.createObjectURL(blob);
     } catch (error: any) {
         console.error("Error during video download fetch:", error);
-        if (error.message.includes("API_KEY_ERROR")) {
-            // Re-throw the specific error if we identified it.
-            throw error;
-        }
-        // "Failed to fetch" is a generic browser error. We can give a better hint now.
-        throw new Error("Failed to fetch video. This may be due to a network issue, CORS policy, or an invalid API key. Please check the browser's network console for more details, including the logged API error body.");
+        throw error;
     }
 };

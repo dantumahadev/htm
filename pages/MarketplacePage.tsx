@@ -269,7 +269,7 @@ const ReviewAndPublish: React.FC<{ initialData: Partial<Product> & { transcripti
                 if (updatedOp.done) {
                     if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
                     setVideoGenerationStatus('done');
-                    const downloadLink = updatedOp.response?.generatedVideos?.[0]?.video?.uri;
+                    const downloadLink = updatedOp.response?.generatedVideos?.[0]?.video?.uri || (updatedOp.response?.generatedVideos?.[0]?.video?.videoBytes ? 'data:video/mp4;base64,' + updatedOp.response?.generatedVideos?.[0]?.video?.videoBytes : undefined);
                     if (downloadLink) {
                         const videoUrl = await downloadVideo(downloadLink);
                         setGeneratedVideoUrl(videoUrl);
@@ -601,7 +601,7 @@ const VideoAdCreator: React.FC = () => {
                 if (updatedOp.done) {
                     if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
                     setVideoGenerationStatus('done');
-                    const downloadLink = updatedOp.response?.generatedVideos?.[0]?.video?.uri;
+                    const downloadLink = updatedOp.response?.generatedVideos?.[0]?.video?.uri || (updatedOp.response?.generatedVideos?.[0]?.video?.videoBytes ? 'data:video/mp4;base64,' + updatedOp.response?.generatedVideos?.[0]?.video?.videoBytes : undefined);
                     if (downloadLink) {
                         const videoUrl = await downloadVideo(downloadLink);
                         setGeneratedVideoUrl(videoUrl);
@@ -983,15 +983,8 @@ const SocialMediaToolkit: React.FC = () => {
         }
     };
 
-    const handleGenerate = async () => {
-        if (!prompt || !platform) return;
-        setIsLoading(true);
-        setResult(null);
-        try {
-            const fullPrompt = imageFile ? `For a social media post featuring the uploaded image, ${prompt}` : prompt;
-            const response = await generateSocialMediaPost(platform, fullPrompt, language);
-            setResult(JSON.parse(response));
-        } catch (e: any) { /* Error handling */ } finally { setIsLoading(false); }
+    const handleGenerate = () => {
+        window.open('https://frontend-six-gray-w8h4mvi5tb.vercel.app/create', '_blank');
     };
 
     const handleShare = async () => {
@@ -1044,7 +1037,7 @@ const SocialMediaToolkit: React.FC = () => {
                     </div>
                     <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t('marketplace.social.placeholder')} className="w-full p-2 border rounded h-24 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400"/>
                 </div>
-                <Button onClick={handleGenerate} isLoading={isLoading} disabled={!prompt || !platform} className="w-full">Generate Post</Button>
+                <Button onClick={handleGenerate} className="w-full">Generate Post</Button>
                 {result && (
                      <div className="mt-4 p-4 bg-slate-50 rounded-xl border flex-grow flex flex-col dark:bg-slate-800/50 dark:border-slate-700">
                         <p className="whitespace-pre-wrap flex-grow">{result.postContent}</p>

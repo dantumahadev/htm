@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 
 type NavIconType = 'dashboard' | 'marketplace' | 'volunteers' | 'finance' | 'nft' | 'training' | 'community' | 'photostudio';
